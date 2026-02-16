@@ -43,7 +43,7 @@ export function CreateTenantForm({
           The subdomain is created when you save. Only letters, numbers, and hyphens.
         </p>
         {tenantUrl && (
-          <p className="mt-2 text-sm font-medium text-primary-700">
+          <p className="mt-2 text-sm font-medium text-teal-700">
             Tenant URL: <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="underline">{tenantUrl}</a>
           </p>
         )}

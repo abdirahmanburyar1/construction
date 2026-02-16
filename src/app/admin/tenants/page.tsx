@@ -75,7 +75,7 @@ export default async function AdminTenantsPage({
                   <td className="font-medium text-slate-800">{t.companyName}</td>
                   <td>{t.slug}</td>
                   <td>
-                    <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary-600 hover:text-primary-700">
+                    <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-teal-600 hover:text-teal-700">
                       {tenantUrl}
                     </a>
                   </td>

@@ -108,7 +108,7 @@ export default async function DashboardPage() {
                       {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(mat + exp)}
                     </td>
                     <td>
-                      <Link href={`/projects/${p.id}`} className="font-medium text-primary-600 hover:text-primary-700">
+                      <Link href={`/projects/${p.id}`} className="font-medium text-teal-600 hover:text-teal-700">
                         View →
                       </Link>
                     </td>
@@ -120,7 +120,7 @@ export default async function DashboardPage() {
         </div>
         {projectCount > PAGE_SIZE && (
           <p className="mt-4">
-            <Link href="/projects" className="text-sm font-medium text-primary-600 hover:text-primary-700">
+            <Link href="/projects" className="text-sm font-medium text-teal-600 hover:text-teal-700">
               View all projects →
             </Link>
           </p>

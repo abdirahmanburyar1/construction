@@ -59,7 +59,7 @@ export default async function ProjectsPage({
                     : "—"}
                 </td>
                 <td>
-                  <Link href={`/projects/${p.id}`} className="text-teal-600 hover:underline">
+                  <Link href={`/projects/${p.id}`} className="text-teal-600 hover:text-teal-700">
                     View
                   </Link>
                 </td>

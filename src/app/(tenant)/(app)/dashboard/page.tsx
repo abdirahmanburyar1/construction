@@ -50,35 +50,38 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+      <div>
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">Overview of your projects and investment</p>
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card">
-          <p className="text-sm text-slate-500">Total Projects</p>
-          <p className="text-2xl font-semibold text-slate-800">{projectCount}</p>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="stat-card">
+          <span className="stat-label">Total Projects</span>
+          <span className="stat-value">{projectCount}</span>
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-500">Total Materials Cost</p>
-          <p className="text-2xl font-semibold text-slate-800">
+        <div className="stat-card">
+          <span className="stat-label">Total Materials Cost</span>
+          <span className="stat-value">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalMaterials)}
-          </p>
+          </span>
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-500">Total Expenses</p>
-          <p className="text-2xl font-semibold text-slate-800">
+        <div className="stat-card">
+          <span className="stat-label">Total Expenses</span>
+          <span className="stat-value">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalExpenses)}
-          </p>
+          </span>
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-500">Total Investment</p>
-          <p className="text-2xl font-semibold text-teal-700">
+        <div className="stat-card">
+          <span className="stat-label">Total Investment</span>
+          <span className="stat-value-accent">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalInvestment)}
-          </p>
+          </span>
         </div>
       </div>
 
       <div className="card">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Projects summary</h2>
+        <h2 className="card-header">Projects summary</h2>
         <div className="table-wrap">
           <table>
             <thead>
@@ -105,8 +108,8 @@ export default async function DashboardPage() {
                       {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(mat + exp)}
                     </td>
                     <td>
-                      <Link href={`/projects/${p.id}`} className="text-teal-600 hover:underline">
-                        View
+                      <Link href={`/projects/${p.id}`} className="font-medium text-primary-600 hover:text-primary-700">
+                        View →
                       </Link>
                     </td>
                   </tr>
@@ -116,8 +119,8 @@ export default async function DashboardPage() {
           </table>
         </div>
         {projectCount > PAGE_SIZE && (
-          <p className="mt-2 text-sm text-slate-500">
-            <Link href="/projects" className="text-teal-600 hover:underline">
+          <p className="mt-4">
+            <Link href="/projects" className="text-sm font-medium text-primary-600 hover:text-primary-700">
               View all projects →
             </Link>
           </p>

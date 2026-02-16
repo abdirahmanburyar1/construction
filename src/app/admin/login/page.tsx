@@ -7,9 +7,16 @@ export default async function AdminLoginPage() {
   if (admin) redirect("/admin");
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-6 text-xl font-semibold text-slate-800">Platform Admin Login</h1>
-      <AdminLoginForm />
+    <div className="flex min-h-[60vh] items-center justify-center px-4">
+      <div className="w-full max-w-[400px]">
+        <div className="card">
+          <h1 className="page-title">Platform Admin</h1>
+          <p className="mt-1 text-sm text-slate-500">Sign in to manage tenants and subscriptions</p>
+          <div className="mt-8">
+            <AdminLoginForm />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -9,10 +9,16 @@ export default async function TenantLoginPage() {
   if (session && session.id === tenant.id) redirect("/dashboard");
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-2 text-xl font-semibold text-slate-800">{tenant.companyName}</h1>
-      <p className="mb-6 text-sm text-slate-500">Sign in to your account</p>
-      <TenantLoginForm />
+    <div className="flex min-h-[60vh] items-center justify-center px-4">
+      <div className="w-full max-w-[400px]">
+        <div className="card">
+          <h1 className="page-title">{tenant.companyName}</h1>
+          <p className="mt-1 text-sm text-slate-500">Sign in to your account</p>
+          <div className="mt-8">
+            <TenantLoginForm />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

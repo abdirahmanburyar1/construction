@@ -30,9 +30,12 @@ export default async function ExpensesPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Expenses</h1>
-        <Link href="/expenses/new" className="btn btn-primary">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="page-title">Expenses</h1>
+          <p className="page-subtitle">Labor, transport, equipment, and other costs</p>
+        </div>
+        <Link href="/expenses/new" className="btn btn-primary shrink-0">
           Add expense
         </Link>
       </div>

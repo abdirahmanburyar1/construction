@@ -29,9 +29,12 @@ export default async function MaterialsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Materials</h1>
-        <Link href="/materials/new" className="btn btn-primary">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="page-title">Materials</h1>
+          <p className="page-subtitle">Purchase records and costs per project</p>
+        </div>
+        <Link href="/materials/new" className="btn btn-primary shrink-0">
           Add material
         </Link>
       </div>

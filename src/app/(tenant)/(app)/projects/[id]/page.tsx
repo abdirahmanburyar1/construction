@@ -23,43 +23,43 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">{project.name}</h1>
-        <Link href="/projects" className="btn btn-secondary">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="page-title">{project.name}</h1>
+        <Link href="/projects" className="btn btn-secondary shrink-0">
           ← Projects
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="card">
-          <p className="text-sm text-slate-500">Materials cost</p>
-          <p className="text-xl font-semibold text-slate-800">
+      <div className="grid gap-5 sm:grid-cols-3">
+        <div className="stat-card">
+          <span className="stat-label">Materials cost</span>
+          <span className="stat-value">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalMaterials)}
-          </p>
+          </span>
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-500">Expenses</p>
-          <p className="text-xl font-semibold text-slate-800">
+        <div className="stat-card">
+          <span className="stat-label">Expenses</span>
+          <span className="stat-value">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalExpenses)}
-          </p>
+          </span>
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-500">Total investment</p>
-          <p className="text-xl font-semibold text-teal-700">
+        <div className="stat-card">
+          <span className="stat-label">Total investment</span>
+          <span className="stat-value-accent">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalInvestment)}
-          </p>
+          </span>
         </div>
       </div>
 
       <div className="card">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Edit project</h2>
+        <h2 className="card-header">Edit project</h2>
         <ProjectForm project={project} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="card">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800">Materials</h2>
+            <h2 className="card-header">Materials</h2>
             <Link href={`/materials/new?projectId=${project.id}`} className="btn btn-primary text-sm">
               Add
             </Link>
@@ -96,7 +96,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
         <div className="card">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800">Expenses</h2>
+            <h2 className="card-header">Expenses</h2>
             <Link href={`/expenses/new?projectId=${project.id}`} className="btn btn-primary text-sm">
               Add
             </Link>

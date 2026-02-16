@@ -37,12 +37,18 @@ export default async function AdminTenantsPage({
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const platformDomain = process.env.PLATFORM_DOMAIN || "dhisme.so";
+  const isProduction = !platformDomain.includes("localhost");
+  const baseUrl = `${isProduction ? "https" : "http"}://`;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Tenants</h1>
-        <Link href="/admin/tenants/new" className="btn btn-primary">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="page-title">Tenants</h1>
+          <p className="page-subtitle">Each tenant uses a subdomain (e.g. {baseUrl}[slug].{platformDomain})</p>
+        </div>
+        <Link href="/admin/tenants/new" className="btn btn-primary shrink-0">
           Create tenant
         </Link>
       </div>
@@ -52,7 +58,8 @@ export default async function AdminTenantsPage({
           <thead>
             <tr>
               <th>Company</th>
-              <th>Slug (subdomain)</th>
+              <th>Slug</th>
+              <th>Tenant URL</th>
               <th>Email</th>
               <th>Status</th>
               <th>Start</th>
@@ -61,21 +68,29 @@ export default async function AdminTenantsPage({
             </tr>
           </thead>
           <tbody>
-            {tenants.map((t) => (
-              <tr key={t.id}>
-                <td className="font-medium text-slate-800">{t.companyName}</td>
-                <td>{t.slug}</td>
-                <td>{t.email}</td>
-                <td>{t.subscriptionStatus}</td>
-                <td>{t.subscriptionStartDate ? new Date(t.subscriptionStartDate).toLocaleDateString() : "—"}</td>
-                <td>{t.subscriptionExpiryDate ? new Date(t.subscriptionExpiryDate).toLocaleDateString() : "—"}</td>
-                <td>
-                  <Link href={`/admin/tenants/${t.id}/edit`} className="text-teal-600 hover:underline">
-                    Edit
-                  </Link>
-                </td>
-              </tr>
-            ))}
+            {tenants.map((t) => {
+              const tenantUrl = `${baseUrl}${t.slug}.${platformDomain}`;
+              return (
+                <tr key={t.id}>
+                  <td className="font-medium text-slate-800">{t.companyName}</td>
+                  <td>{t.slug}</td>
+                  <td>
+                    <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary-600 hover:text-primary-700">
+                      {tenantUrl}
+                    </a>
+                  </td>
+                  <td>{t.email}</td>
+                  <td>{t.subscriptionStatus}</td>
+                  <td>{t.subscriptionStartDate ? new Date(t.subscriptionStartDate).toLocaleDateString() : "—"}</td>
+                  <td>{t.subscriptionExpiryDate ? new Date(t.subscriptionExpiryDate).toLocaleDateString() : "—"}</td>
+                  <td>
+                    <Link href={`/admin/tenants/${t.id}/edit`} className="text-teal-600 hover:underline">
+                      Edit
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

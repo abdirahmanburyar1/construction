@@ -14,15 +14,18 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-slate-800">Admin Dashboard</h1>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="card">
-          <p className="text-sm text-slate-500">Total Tenants</p>
-          <p className="text-2xl font-semibold text-slate-800">{totalTenants}</p>
+      <div>
+        <h1 className="page-title">Admin Dashboard</h1>
+        <p className="page-subtitle">Platform overview and tenant management</p>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="stat-card">
+          <span className="stat-label">Total Tenants</span>
+          <span className="stat-value">{totalTenants}</span>
         </div>
-        <div className="card">
-          <p className="text-sm text-slate-500">Active Subscriptions</p>
-          <p className="text-2xl font-semibold text-slate-800">{activeTenants}</p>
+        <div className="stat-card">
+          <span className="stat-label">Active Subscriptions</span>
+          <span className="stat-value">{activeTenants}</span>
         </div>
       </div>
       <div>

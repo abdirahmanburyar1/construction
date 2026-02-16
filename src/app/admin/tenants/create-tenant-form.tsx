@@ -1,43 +1,63 @@
 "use client";
 
 import { useFormState } from "react-dom";
+import { useState } from "react";
 import { createTenantAction } from "@/app/admin/tenants/actions";
 import Link from "next/link";
 
-export function CreateTenantForm() {
+function slugFromInput(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9-]/g, "") || "";
+}
+
+export function CreateTenantForm({
+  platformDomain,
+  protocol,
+}: {
+  platformDomain: string;
+  protocol: string;
+}) {
   const [state, formAction] = useFormState(createTenantAction, null);
+  const [slugPreview, setSlugPreview] = useState("");
+
+  const tenantUrl = slugPreview
+    ? `${protocol}://${slugPreview}.${platformDomain}`
+    : "";
 
   return (
-    <form action={formAction} className="max-w-md space-y-4">
+    <form action={formAction} className="max-w-md space-y-5">
       <div>
-        <label htmlFor="companyName" className="mb-1 block text-sm font-medium text-slate-700">
-          Company name
-        </label>
+        <label htmlFor="companyName" className="label">Company name</label>
         <input id="companyName" name="companyName" required className="input" />
       </div>
       <div>
-        <label htmlFor="slug" className="mb-1 block text-sm font-medium text-slate-700">
-          Slug (subdomain)
-        </label>
-        <input id="slug" name="slug" required className="input" placeholder="e.g. abc" />
-        <p className="mt-1 text-xs text-slate-500">Used as subdomain: slug.dhisme.so</p>
+        <label htmlFor="slug" className="label">Slug (subdomain)</label>
+        <input
+          id="slug"
+          name="slug"
+          required
+          className="input"
+          placeholder="e.g. acme"
+          onChange={(e) => setSlugPreview(slugFromInput(e.target.value))}
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          The subdomain is created when you save. Only letters, numbers, and hyphens.
+        </p>
+        {tenantUrl && (
+          <p className="mt-2 text-sm font-medium text-primary-700">
+            Tenant URL: <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="underline">{tenantUrl}</a>
+          </p>
+        )}
       </div>
       <div>
-        <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
-          Email
-        </label>
+        <label htmlFor="email" className="label">Email</label>
         <input id="email" name="email" type="email" required className="input" />
       </div>
       <div>
-        <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
-          Password
-        </label>
+        <label htmlFor="password" className="label">Password</label>
         <input id="password" name="password" type="password" required className="input" />
       </div>
       <div>
-        <label htmlFor="subscriptionStatus" className="mb-1 block text-sm font-medium text-slate-700">
-          Subscription status
-        </label>
+        <label htmlFor="subscriptionStatus" className="label">Subscription status</label>
         <select id="subscriptionStatus" name="subscriptionStatus" className="input">
           <option value="ACTIVE">ACTIVE</option>
           <option value="EXPIRED">EXPIRED</option>
@@ -46,15 +66,11 @@ export function CreateTenantForm() {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="subscriptionStartDate" className="mb-1 block text-sm font-medium text-slate-700">
-            Start date
-          </label>
+          <label htmlFor="subscriptionStartDate" className="label">Start date</label>
           <input id="subscriptionStartDate" name="subscriptionStartDate" type="date" className="input" />
         </div>
         <div>
-          <label htmlFor="subscriptionExpiryDate" className="mb-1 block text-sm font-medium text-slate-700">
-            Expiry date
-          </label>
+          <label htmlFor="subscriptionExpiryDate" className="label">Expiry date</label>
           <input id="subscriptionExpiryDate" name="subscriptionExpiryDate" type="date" className="input" />
         </div>
       </div>

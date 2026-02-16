@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Tenant {
+  id                    String    @id @default(cuid())
+  companyName           String
+  slug                  String    @unique
+  email                 String    @unique
+  password              String
+  subscriptionStatus    String    @default("ACTIVE") // ACTIVE | EXPIRED | SUSPENDED
+  subscriptionStartDate DateTime?
+  subscriptionExpiryDate DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  projects Project[]
+  materials Material[]
+  expenses  Expense[]
+  clients   Client[]
+
+  @@index([slug])
+  @@index([subscriptionStatus])
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  tenantId        String
+  name            String
+  description     String?
+  estimatedBudget  Decimal?  @db.Decimal(14, 2)
+  status          String    @default("Planning") // Planning | Ongoing | Completed
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  materials Material[]
+  expenses  Expense[]
+  clients   Client[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model Material {
+  id          String   @id @default(cuid())
+  tenantId    String
+  projectId   String
+  name        String
+  quantity    Decimal  @db.Decimal(14, 4)
+  unit        String
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  totalPrice  Decimal  @db.Decimal(14, 2)
+  purchasedAt DateTime @default(now())
+  notes       String?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, purchasedAt])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  tenantId    String
+  projectId   String
+  category    String   // Labor | Transport | Equipment | Permits | Miscellaneous
+  amount      Decimal  @db.Decimal(14, 2)
+  description String?
+  expenseDate DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, expenseDate])
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  tenantId  String
+  projectId String?
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([projectId])
+}

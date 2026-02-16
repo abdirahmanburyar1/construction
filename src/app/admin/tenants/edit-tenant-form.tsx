@@ -1,0 +1,80 @@
+"use client";
+
+import { useFormState } from "react-dom";
+import { updateTenantAction } from "@/app/admin/tenants/actions";
+import Link from "next/link";
+import type { Tenant } from "@prisma/client";
+
+export function EditTenantForm({ tenant }: { tenant: Tenant }) {
+  const [state, formAction] = useFormState(updateTenantAction, null);
+
+  const start = tenant.subscriptionStartDate
+    ? new Date(tenant.subscriptionStartDate).toISOString().slice(0, 10)
+    : "";
+  const expiry = tenant.subscriptionExpiryDate
+    ? new Date(tenant.subscriptionExpiryDate).toISOString().slice(0, 10)
+    : "";
+
+  return (
+    <form action={formAction} className="max-w-md space-y-4">
+      <input type="hidden" name="id" value={tenant.id} />
+      <div>
+        <label htmlFor="companyName" className="mb-1 block text-sm font-medium text-slate-700">
+          Company name
+        </label>
+        <input id="companyName" name="companyName" required className="input" defaultValue={tenant.companyName} />
+      </div>
+      <div>
+        <label htmlFor="slug" className="mb-1 block text-sm font-medium text-slate-700">
+          Slug (subdomain)
+        </label>
+        <input id="slug" name="slug" required className="input" defaultValue={tenant.slug} />
+      </div>
+      <div>
+        <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
+          Email
+        </label>
+        <input id="email" name="email" type="email" required className="input" defaultValue={tenant.email} />
+      </div>
+      <div>
+        <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+          New password (leave blank to keep)
+        </label>
+        <input id="password" name="password" type="password" className="input" />
+      </div>
+      <div>
+        <label htmlFor="subscriptionStatus" className="mb-1 block text-sm font-medium text-slate-700">
+          Subscription status
+        </label>
+        <select id="subscriptionStatus" name="subscriptionStatus" className="input" defaultValue={tenant.subscriptionStatus}>
+          <option value="ACTIVE">ACTIVE</option>
+          <option value="EXPIRED">EXPIRED</option>
+          <option value="SUSPENDED">SUSPENDED</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="subscriptionStartDate" className="mb-1 block text-sm font-medium text-slate-700">
+            Start date
+          </label>
+          <input id="subscriptionStartDate" name="subscriptionStartDate" type="date" className="input" defaultValue={start} />
+        </div>
+        <div>
+          <label htmlFor="subscriptionExpiryDate" className="mb-1 block text-sm font-medium text-slate-700">
+            Expiry date
+          </label>
+          <input id="subscriptionExpiryDate" name="subscriptionExpiryDate" type="date" className="input" defaultValue={expiry} />
+        </div>
+      </div>
+      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      <div className="flex gap-2">
+        <button type="submit" className="btn btn-primary">
+          Save
+        </button>
+        <Link href="/admin/tenants" className="btn btn-secondary">
+          Cancel
+        </Link>
+      </div>
+    </form>
+  );
+}

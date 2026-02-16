@@ -1,0 +1,38 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { getTenantForRequest } from "@/lib/tenant-context";
+import { prisma } from "@/lib/prisma";
+
+export async function createClientAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<{ error?: string } | null> {
+  const tenant = await getTenantForRequest();
+  const name = (formData.get("name") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim() || null;
+  const phone = (formData.get("phone") as string)?.trim() || null;
+  const address = (formData.get("address") as string)?.trim() || null;
+  const projectId = (formData.get("projectId") as string)?.trim() || null;
+
+  if (!name) return { error: "Name required" };
+
+  if (projectId) {
+    const project = await prisma.project.findFirst({ where: { id: projectId, tenantId: tenant.id } });
+    if (!project) return { error: "Project not found" };
+  }
+
+  await prisma.client.create({
+    data: {
+      tenantId: tenant.id,
+      name,
+      email,
+      phone,
+      address,
+      projectId,
+    },
+  });
+  revalidatePath("/clients");
+  redirect("/clients");
+}

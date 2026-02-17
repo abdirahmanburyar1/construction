@@ -10,7 +10,7 @@ const BASE_URL = `${isProduction ? "https" : "http"}://${PLATFORM_DOMAIN}`;
 export const getTenantForRequest = cache(async () => {
   const h = await headers();
   const slug = h.get("x-tenant-slug");
-  if (!slug) redirect(`${BASE_URL}/admin`);
+  if (!slug) redirect(`${BASE_URL}/`);
 
   const tenant = await getTenantBySlug(slug);
   if (!tenant) redirect(`${BASE_URL}/suspended`);

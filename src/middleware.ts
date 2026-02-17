@@ -9,18 +9,23 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const pathname = request.nextUrl.pathname;
 
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isSuspendedPage = pathname === "/suspended";
+  if (pathname.startsWith("/admin")) {
+    const newPath = pathname === "/admin" || pathname === "/admin/"
+      ? "/"
+      : pathname.replace(/^\/admin/, "") || "/";
+    return NextResponse.redirect(new URL(newPath, request.url));
+  }
 
+  const isSuspendedPage = pathname === "/suspended";
   const subdomain = getSubdomain(host);
   const hostWithoutPort = host.split(":")[0];
   const isMainDomain = !subdomain || hostWithoutPort === MAIN_HOST || hostWithoutPort === "localhost";
 
   if (isMainDomain) {
-    if (isAdminRoute || isSuspendedPage || pathname === "/" || pathname === "/login") {
+    if (pathname === "/" || pathname === "/login" || pathname.startsWith("/tenants") || isSuspendedPage) {
       return NextResponse.next();
     }
-    return NextResponse.redirect(new URL("/admin", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   if (subdomain) {

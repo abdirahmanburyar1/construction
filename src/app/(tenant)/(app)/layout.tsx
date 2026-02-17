@@ -14,9 +14,11 @@ export default async function TenantAppLayout({
     redirect("/login");
   }
   return (
-    <>
+    <div className="flex min-h-screen bg-slate-100">
       <TenantNav />
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</div>
-    </>
+      <main className="flex-1 overflow-auto">
+        <div className="p-6 lg:p-8">{children}</div>
+      </main>
+    </div>
   );
 }

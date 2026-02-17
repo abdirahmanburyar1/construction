@@ -1,8 +1,8 @@
 export default function SuspendedPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="card w-full max-w-md text-center">
-        <h1 className="page-title">Access suspended</h1>
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900">Access suspended</h1>
         <p className="mt-3 text-sm text-slate-600">
           This tenant does not exist or the subscription has expired or been suspended. Please contact the platform
           administrator.

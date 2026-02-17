@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { clearTenantSession } from "@/lib/auth";
 
-export async function POST() {
+const TENANT_SESSION_COOKIE = "tenant_session";
+
+export async function POST(request: NextRequest) {
   await clearTenantSession();
-  const domain = process.env.PLATFORM_DOMAIN || "localhost:3000";
-  const isProduction = !domain.includes("localhost");
-  const base = `${isProduction ? "https" : "http"}://${domain}`;
-  return NextResponse.redirect(`${base}/login`);
+  const origin = request.nextUrl.origin;
+  const res = NextResponse.redirect(new URL("/login", origin));
+  res.cookies.set(TENANT_SESSION_COOKIE, "", { path: "/", maxAge: 0 });
+  return res;
 }

@@ -42,49 +42,49 @@ export default async function AdminTenantsPage({
   const baseUrl = `${isProduction ? "https" : "http"}://`;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="page-title">Tenants</h1>
-          <p className="page-subtitle">Each tenant uses a subdomain (e.g. {baseUrl}[slug].{platformDomain})</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tenants</h1>
+          <p className="mt-1 text-sm text-slate-500">Subdomain per tenant (e.g. {baseUrl}[slug].{platformDomain})</p>
         </div>
-        <Link href="/admin/tenants/new" className="btn btn-primary shrink-0">
+        <Link href="/admin/tenants/new" className="shrink-0 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700">
           Create tenant
         </Link>
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-200 bg-slate-50">
             <tr>
-              <th>Company</th>
-              <th>Slug</th>
-              <th>Tenant URL</th>
-              <th>Email</th>
-              <th>Status</th>
-              <th>Start</th>
-              <th>Expiry</th>
-              <th></th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Company</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Slug</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Tenant URL</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Email</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Status</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Start</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Expiry</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {tenants.map((t) => {
               const tenantUrl = `${baseUrl}${t.slug}.${platformDomain}`;
               return (
-                <tr key={t.id}>
-                  <td className="font-medium text-slate-800">{t.companyName}</td>
-                  <td>{t.slug}</td>
-                  <td>
+                <tr key={t.id} className="transition-colors hover:bg-slate-50/50">
+                  <td className="px-5 py-3.5 font-medium text-slate-800">{t.companyName}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.slug}</td>
+                  <td className="px-5 py-3.5">
                     <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-teal-600 hover:text-teal-700">
                       {tenantUrl}
                     </a>
                   </td>
-                  <td>{t.email}</td>
-                  <td>{t.subscriptionStatus}</td>
-                  <td>{t.subscriptionStartDate ? new Date(t.subscriptionStartDate).toLocaleDateString() : "—"}</td>
-                  <td>{t.subscriptionExpiryDate ? new Date(t.subscriptionExpiryDate).toLocaleDateString() : "—"}</td>
-                  <td>
-                    <Link href={`/admin/tenants/${t.id}/edit`} className="text-teal-600 hover:underline">
+                  <td className="px-5 py-3.5 text-slate-600">{t.email}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.subscriptionStatus}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.subscriptionStartDate ? new Date(t.subscriptionStartDate).toLocaleDateString() : "—"}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.subscriptionExpiryDate ? new Date(t.subscriptionExpiryDate).toLocaleDateString() : "—"}</td>
+                  <td className="px-5 py-3.5">
+                    <Link href={`/admin/tenants/${t.id}/edit`} className="font-medium text-teal-600 hover:text-teal-700">
                       Edit
                     </Link>
                   </td>
@@ -94,7 +94,6 @@ export default async function AdminTenantsPage({
           </tbody>
         </table>
       </div>
-
       {totalPages > 1 && (
         <div className="flex gap-2">
           {current > 1 && (

@@ -49,65 +49,67 @@ export default async function DashboardPage() {
   const expenseMap = new Map(expenseByProject.map((e) => [e.projectId, Number(e._sum.amount ?? 0)]));
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">Overview of your projects and investment</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500">Overview of your projects and investment</p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="stat-card">
-          <span className="stat-label">Total Projects</span>
-          <span className="stat-value">{projectCount}</span>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Total Projects</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{projectCount}</p>
         </div>
-        <div className="stat-card">
-          <span className="stat-label">Total Materials Cost</span>
-          <span className="stat-value">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Total Materials Cost</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalMaterials)}
-          </span>
+          </p>
         </div>
-        <div className="stat-card">
-          <span className="stat-label">Total Expenses</span>
-          <span className="stat-value">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Total Expenses</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalExpenses)}
-          </span>
+          </p>
         </div>
-        <div className="stat-card">
-          <span className="stat-label">Total Investment</span>
-          <span className="stat-value-accent">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Total Investment</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-teal-700">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalInvestment)}
-          </span>
+          </p>
         </div>
       </div>
 
-      <div className="card">
-        <h2 className="card-header">Projects summary</h2>
-        <div className="table-wrap">
-          <table>
-            <thead>
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-4">
+          <h2 className="text-base font-semibold text-slate-800">Projects summary</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
-                <th>Project</th>
-                <th>Status</th>
-                <th>Materials</th>
-                <th>Expenses</th>
-                <th>Total</th>
-                <th></th>
+                <th className="px-5 py-3.5 font-semibold text-slate-700">Project</th>
+                <th className="px-5 py-3.5 font-semibold text-slate-700">Status</th>
+                <th className="px-5 py-3.5 font-semibold text-slate-700">Materials</th>
+                <th className="px-5 py-3.5 font-semibold text-slate-700">Expenses</th>
+                <th className="px-5 py-3.5 font-semibold text-slate-700">Total</th>
+                <th className="px-5 py-3.5 font-semibold text-slate-700"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {projectsWithTotals.map((p) => {
                 const mat = materialMap.get(p.id) ?? 0;
                 const exp = expenseMap.get(p.id) ?? 0;
                 return (
-                  <tr key={p.id}>
-                    <td className="font-medium text-slate-800">{p.name}</td>
-                    <td>{p.status}</td>
-                    <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(mat)}</td>
-                    <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(exp)}</td>
-                    <td className="font-medium">
+                  <tr key={p.id} className="transition-colors hover:bg-slate-50/50">
+                    <td className="px-5 py-3.5 font-medium text-slate-800">{p.name}</td>
+                    <td className="px-5 py-3.5 text-slate-600">{p.status}</td>
+                    <td className="px-5 py-3.5 text-slate-600">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(mat)}</td>
+                    <td className="px-5 py-3.5 text-slate-600">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(exp)}</td>
+                    <td className="px-5 py-3.5 font-medium text-slate-800">
                       {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(mat + exp)}
                     </td>
-                    <td>
+                    <td className="px-5 py-3.5">
                       <Link href={`/projects/${p.id}`} className="font-medium text-teal-600 hover:text-teal-700">
                         View →
                       </Link>
@@ -119,11 +121,11 @@ export default async function DashboardPage() {
           </table>
         </div>
         {projectCount > PAGE_SIZE && (
-          <p className="mt-4">
+          <div className="border-t border-slate-200 px-6 py-4">
             <Link href="/projects" className="text-sm font-medium text-teal-600 hover:text-teal-700">
               View all projects →
             </Link>
-          </p>
+          </div>
         )}
       </div>
     </div>

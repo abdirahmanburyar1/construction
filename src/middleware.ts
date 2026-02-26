@@ -6,7 +6,8 @@ const PLATFORM_DOMAIN = process.env.PLATFORM_DOMAIN || "localhost:3000";
 const MAIN_HOST = PLATFORM_DOMAIN.split(":")[0];
 
 export function middleware(request: NextRequest) {
-  const host = request.headers.get("host") || "";
+  // Use x-forwarded-host when behind Vercel/proxy so albayaan.dhisme.so is detected
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
   const pathname = request.nextUrl.pathname;
 
   if (pathname.startsWith("/admin")) {

@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getTenantForRequest } from "@/lib/tenant-context";
 import { getTenantFromSession } from "@/lib/auth";
+import { getSubdomain } from "@/lib/tenant";
 import { TenantLoginForm } from "./tenant-login-form";
 import Link from "next/link";
 
 export default async function LoginPage() {
   const headersList = await headers();
-  const slug = headersList.get("x-tenant-slug");
+  const host = headersList.get("x-forwarded-host") || headersList.get("host") || "";
+  const slug = headersList.get("x-tenant-slug") || getSubdomain(host);
 
   if (slug) {
     const tenant = await getTenantForRequest();

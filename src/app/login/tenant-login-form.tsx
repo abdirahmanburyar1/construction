@@ -2,18 +2,19 @@
 
 import { useFormState } from "react-dom";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { tenantLoginAction } from "@/app/(tenant)/actions";
 
 export function TenantLoginForm() {
-  const router = useRouter();
   const [state, formAction] = useFormState(tenantLoginAction, null);
 
   useEffect(() => {
     if (state && "success" in state && state.success) {
-      router.replace("/dashboard");
+      // Stay on current host (e.g. albayaan.dhisme.so) so session cookie is sent
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
     }
-  }, [state, router]);
+  }, [state]);
 
   return (
     <form action={formAction} className="space-y-5">

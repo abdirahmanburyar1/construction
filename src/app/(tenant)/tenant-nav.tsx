@@ -11,12 +11,12 @@ export function TenantNav({
   return (
     <div className="flex w-56 flex-col border-r border-slate-200 bg-white">
       <div className="flex h-16 items-center border-b border-slate-200 px-5">
-        <Link href="/dashboard" className="truncate text-lg font-bold tracking-tight text-slate-900">
+        <Link href="/" className="truncate text-lg font-bold tracking-tight text-slate-900">
           {tenantName}
         </Link>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="Main">
-        <NavLink href="/dashboard">Dashboard</NavLink>
+        <NavLink href="/">Dashboard</NavLink>
         <NavLink href="/projects">Projects</NavLink>
         <NavLink href="/materials">Materials</NavLink>
         <NavLink href="/expenses">Expenses</NavLink>

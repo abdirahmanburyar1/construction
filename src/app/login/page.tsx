@@ -14,7 +14,7 @@ export default async function LoginPage() {
   if (slug) {
     const tenant = await getTenantForRequest();
     const session = await getTenantFromSession();
-    if (session && session.tenantId === tenant.id) redirect("/dashboard");
+    if (session && session.tenantId === tenant.id) redirect("/");
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">

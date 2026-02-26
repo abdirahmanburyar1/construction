@@ -29,6 +29,10 @@ export function middleware(request: NextRequest) {
   }
 
   if (subdomain) {
+    // Tenant subdomain: root path → login so albayaan.dhisme.so shows login
+    if (pathname === "/") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
     const res = NextResponse.next();
     res.headers.set("x-tenant-slug", subdomain);
     return res;

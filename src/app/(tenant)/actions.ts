@@ -2,9 +2,15 @@
 
 import { getTenantForRequest } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, setTenantSession } from "@/lib/auth";
+import { verifyPassword, setTenantSession, clearTenantSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export type TenantLoginResult = { error?: string } | { success: true };
+
+export async function tenantLogoutAction() {
+  await clearTenantSession();
+  redirect("/login");
+}
 
 export async function tenantLoginAction(
   _prev: unknown,

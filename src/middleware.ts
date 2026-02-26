@@ -30,14 +30,21 @@ export function middleware(request: NextRequest) {
   }
 
   if (subdomain) {
-    // Keep dashboard hidden: tenant home is "/", not "/dashboard"
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-tenant-slug", subdomain);
+
+    // Rewrite tenant home "/" to "/dashboard" so it uses the shared (app) layout
+    if (pathname === "/") {
+      return NextResponse.rewrite(new URL("/dashboard", request.url), {
+        request: { headers: requestHeaders }
+      });
+    }
+
+    // Hide the actual /dashboard URL by redirecting to /
     if (pathname === "/dashboard") {
       return NextResponse.redirect(new URL("/", request.url));
     }
-    // Forward tenant slug on the REQUEST so Server Components/layouts see it
-    // (response headers are not read by headers() in RSC; RSC fetches can have different Host)
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-tenant-slug", subdomain);
+
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 

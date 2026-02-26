@@ -59,7 +59,18 @@ export async function getTenantFromSession(): Promise<TenantSession | null> {
 
 export async function clearTenantSession(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(TENANT_SESSION_COOKIE);
+  const isProduction = process.env.NODE_ENV === "production";
+  const platformDomain = process.env.PLATFORM_DOMAIN || "localhost:3000";
+  const domain = isProduction && platformDomain.includes(".") ? `.${platformDomain.split(":")[0]}` : undefined;
+  
+  cookieStore.set(TENANT_SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/",
+    ...(domain && { domain }),
+  });
 }
 
 export async function getAdminSession(): Promise<string | null> {

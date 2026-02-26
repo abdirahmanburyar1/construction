@@ -20,6 +20,7 @@ export default async function HomePage() {
     if (!session || session.tenantId !== tenant.id) {
       redirect("/login");
     }
+    // Tenant home at "/" — dashboard is hidden (no /dashboard URL), processed server-side per tenant
     return (
       <div className="flex min-h-screen bg-slate-100">
         <TenantNav userEmail={session.email} tenantName={tenant.name} />

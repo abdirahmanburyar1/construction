@@ -30,7 +30,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (subdomain) {
-    // Tenant subdomain: /dashboard → / so URL stays as albayaan.dhisme.so/
+    // Keep dashboard hidden: tenant home is "/", not "/dashboard"
     if (pathname === "/dashboard") {
       return NextResponse.redirect(new URL("/", request.url));
     }

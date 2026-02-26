@@ -16,7 +16,7 @@ export async function createTenantAction(
   const name = (formData.get("companyName") as string)?.trim();
   const subdomain = (formData.get("slug") as string)?.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
   const adminEmail = (formData.get("email") as string)?.trim().toLowerCase();
-  const adminPassword = formData.get("password") as string;
+  const adminPassword = (formData.get("password") as string)?.trim();
   const status = (formData.get("subscriptionStatus") as string) || "ACTIVE";
   const expiryRaw = formData.get("subscriptionExpiryDate") as string;
 
@@ -69,7 +69,7 @@ export async function updateTenantAction(
   const adminEmail = (formData.get("email") as string)?.trim().toLowerCase();
   const status = (formData.get("subscriptionStatus") as string) || "ACTIVE";
   const expiryRaw = formData.get("subscriptionExpiryDate") as string;
-  const newPassword = formData.get("password") as string;
+  const newPassword = (formData.get("password") as string)?.trim();
 
   if (!name || !subdomain || !adminEmail) return { error: "Required fields missing" };
 
@@ -114,7 +114,7 @@ export async function updateTenantAction(
     await prisma.user.create({
       data: {
         name: name + " Admin",
-        email: adminEmail.toLowerCase(),
+        email: adminEmail,
         password: await hashPassword(newPassword),
         role: "COMPANY_ADMIN",
         tenantId: id,

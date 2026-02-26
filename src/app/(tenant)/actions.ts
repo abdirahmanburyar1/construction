@@ -10,19 +10,28 @@ export async function tenantLoginAction(
   formData: FormData
 ): Promise<{ error?: string } | null> {
   const tenant = await getTenantForRequest();
-  const email = (formData.get("email") as string)?.trim().toLowerCase();
-  const password = formData.get("password") as string;
+  const emailRaw = (formData.get("email") as string)?.trim() ?? "";
+  const email = emailRaw.toLowerCase();
+  const password = (formData.get("password") as string)?.trim() ?? "";
   if (!email || !password) return { error: "Email and password required" };
 
-  const user = await prisma.user.findFirst({
+  // Find user: try exact email first, then case-insensitive (works with any DB/driver)
+  let user = await prisma.user.findFirst({
     where: {
       tenantId: tenant.id,
-      email: { equals: email, mode: "insensitive" },
+      email,
       isActive: true,
       deletedAt: null,
     },
     select: { id: true, password: true },
   });
+  if (!user) {
+    const users = await prisma.user.findMany({
+      where: { tenantId: tenant.id, isActive: true, deletedAt: null },
+      select: { id: true, password: true, email: true },
+    });
+    user = users.find((u) => u.email.toLowerCase() === email) ?? null;
+  }
   if (!user) return { error: "Invalid email or password" };
   const ok = await verifyPassword(password, user.password);
   if (!ok) return { error: "Invalid email or password" };

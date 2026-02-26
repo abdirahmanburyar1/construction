@@ -106,6 +106,20 @@ export async function updateTenantAction(
       where: { id: firstUser.id },
       data: userData,
     });
+  } else {
+    // Tenant has no admin user (e.g. created manually) — create one
+    if (!newPassword || newPassword.length < 6) {
+      return { error: "Password required (min 6 characters) to create first login user" };
+    }
+    await prisma.user.create({
+      data: {
+        name: name + " Admin",
+        email: adminEmail.toLowerCase(),
+        password: await hashPassword(newPassword),
+        role: "COMPANY_ADMIN",
+        tenantId: id,
+      },
+    });
   }
 
   revalidatePath("/tenants");

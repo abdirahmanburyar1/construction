@@ -46,10 +46,10 @@ async function main() {
       select: { id: true, email: true },
     });
     console.log("   Fallback: all users in tenant:", users.map((u) => u.email));
-    user = users.find((u) => u.email.toLowerCase() === emailLower) as typeof user | undefined ?? null;
-    if (user) {
-      const full = await prisma.user.findUnique({ where: { id: user.id }, select: { password: true } });
-      user = full ? { ...user, password: full.password } : null;
+    const found = users.find((u) => u.email.toLowerCase() === emailLower);
+    if (found) {
+      const full = await prisma.user.findUnique({ where: { id: found.id }, select: { id: true, email: true, password: true } });
+      user = full;
     }
   }
 

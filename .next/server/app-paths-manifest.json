@@ -1,19 +1,19 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/contact/page": "app/contact/page.js",
   "/api/tenant-logout/route": "app/api/tenant-logout/route.js",
+  "/contact/page": "app/contact/page.js",
   "/login/page": "app/login/page.js",
   "/page": "app/page.js",
   "/suspended/page": "app/suspended/page.js",
-  "/(tenant)/(app)/clients/page": "app/(tenant)/(app)/clients/page.js",
+  "/(tenant)/(app)/clients/new/page": "app/(tenant)/(app)/clients/new/page.js",
   "/(tenant)/(app)/dashboard/page": "app/(tenant)/(app)/dashboard/page.js",
-  "/(tenant)/(app)/materials/page": "app/(tenant)/(app)/materials/page.js",
+  "/(tenant)/(app)/clients/page": "app/(tenant)/(app)/clients/page.js",
   "/(tenant)/(app)/expenses/new/page": "app/(tenant)/(app)/expenses/new/page.js",
+  "/(tenant)/(app)/expenses/page": "app/(tenant)/(app)/expenses/page.js",
+  "/(tenant)/(app)/materials/new/page": "app/(tenant)/(app)/materials/new/page.js",
+  "/(tenant)/(app)/materials/page": "app/(tenant)/(app)/materials/page.js",
   "/(tenant)/(app)/projects/[id]/edit/page": "app/(tenant)/(app)/projects/[id]/edit/page.js",
   "/(tenant)/(app)/projects/[id]/page": "app/(tenant)/(app)/projects/[id]/page.js",
   "/(tenant)/(app)/projects/new/page": "app/(tenant)/(app)/projects/new/page.js",
-  "/(tenant)/(app)/projects/page": "app/(tenant)/(app)/projects/page.js",
-  "/(tenant)/(app)/expenses/page": "app/(tenant)/(app)/expenses/page.js",
-  "/(tenant)/(app)/clients/new/page": "app/(tenant)/(app)/clients/new/page.js",
-  "/(tenant)/(app)/materials/new/page": "app/(tenant)/(app)/materials/new/page.js"
+  "/(tenant)/(app)/projects/page": "app/(tenant)/(app)/projects/page.js"
 }

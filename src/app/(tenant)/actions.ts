@@ -10,12 +10,17 @@ export async function tenantLoginAction(
   formData: FormData
 ): Promise<{ error?: string } | null> {
   const tenant = await getTenantForRequest();
-  const email = (formData.get("email") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = formData.get("password") as string;
   if (!email || !password) return { error: "Email and password required" };
 
   const user = await prisma.user.findFirst({
-    where: { tenantId: tenant.id, email, isActive: true, deletedAt: null },
+    where: {
+      tenantId: tenant.id,
+      email: { equals: email, mode: "insensitive" },
+      isActive: true,
+      deletedAt: null,
+    },
     select: { id: true, password: true },
   });
   if (!user) return { error: "Invalid email or password" };

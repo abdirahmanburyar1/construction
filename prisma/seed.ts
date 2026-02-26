@@ -40,32 +40,52 @@ async function main() {
     console.log("Plan created: Basic");
   }
 
-  // Demo tenant + first user (company admin)
-  const subdomain = "demo";
-  let tenant = await prisma.tenant.findUnique({ where: { subdomain } });
-  if (!tenant) {
-    tenant = await prisma.tenant.create({
+  // Default tenant: albayaan (albayaan.dhisme.so)
+  const albayaanSubdomain = "albayaan";
+  const albayaanEmail = process.env.ALBAYAAN_USER_EMAIL || "admin@albayaan.dhisme.so";
+  const albayaanPassword = process.env.ALBAYAAN_USER_PASSWORD || "changeme";
+
+  let albayaan = await prisma.tenant.findUnique({ where: { subdomain: albayaanSubdomain } });
+  if (!albayaan) {
+    albayaan = await prisma.tenant.create({
       data: {
-        name: "Demo Company",
-        subdomain,
-        status: "TRIAL",
+        name: "Albayaan",
+        subdomain: albayaanSubdomain,
+        status: "ACTIVE",
         planId: plan.id,
-        trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        trialEndsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       },
     });
-    const userHash = await bcrypt.hash(demoUserPassword, 12);
+    const albayaanUserHash = await bcrypt.hash(albayaanPassword.trim(), 12);
     await prisma.user.create({
       data: {
-        name: "Demo Admin",
-        email: demoUserEmail,
-        password: userHash,
+        name: "Albayaan Admin",
+        email: albayaanEmail.trim().toLowerCase(),
+        password: albayaanUserHash,
         role: "COMPANY_ADMIN",
-        tenantId: tenant.id,
+        tenantId: albayaan.id,
       },
     });
-    console.log("Demo tenant and user created:", subdomain, demoUserEmail);
+    console.log("Albayaan tenant created: https://albayaan.dhisme.so —", albayaanEmail);
   } else {
-    console.log("Demo tenant already exists:", subdomain);
+    const hasUser = await prisma.user.findFirst({
+      where: { tenantId: albayaan.id, role: "COMPANY_ADMIN" },
+    });
+    if (!hasUser) {
+      const albayaanUserHash = await bcrypt.hash(albayaanPassword.trim(), 12);
+      await prisma.user.create({
+        data: {
+          name: "Albayaan Admin",
+          email: albayaanEmail.trim().toLowerCase(),
+          password: albayaanUserHash,
+          role: "COMPANY_ADMIN",
+          tenantId: albayaan.id,
+        },
+      });
+      console.log("Albayaan admin user created:", albayaanEmail);
+    } else {
+      console.log("Albayaan tenant already exists: albayaan.dhisme.so");
+    }
   }
 }
 

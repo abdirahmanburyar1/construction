@@ -22,7 +22,7 @@ export function middleware(request: NextRequest) {
   const isMainDomain = !subdomain || hostWithoutPort === MAIN_HOST || hostWithoutPort === "localhost";
 
   if (isMainDomain) {
-    if (pathname === "/" || pathname === "/login" || pathname.startsWith("/tenants") || pathname === "/contact" || isSuspendedPage) {
+    if (pathname === "/" || pathname === "/login" || pathname === "/contact" || isSuspendedPage) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/", request.url));

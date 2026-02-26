@@ -34,9 +34,11 @@ export function middleware(request: NextRequest) {
     if (pathname === "/dashboard") {
       return NextResponse.redirect(new URL("/", request.url));
     }
-    const res = NextResponse.next();
-    res.headers.set("x-tenant-slug", subdomain);
-    return res;
+    // Forward tenant slug on the REQUEST so Server Components/layouts see it
+    // (response headers are not read by headers() in RSC; RSC fetches can have different Host)
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-tenant-slug", subdomain);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   return NextResponse.next();

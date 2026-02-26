@@ -57,8 +57,9 @@ In the Vercel project:
 
 After DNS has propagated:
 
-- **https://dhisme.so** → should open your app (redirect to `/admin` or show your homepage).
-- **https://dhisme.so/admin** → admin login.
+- **https://dhisme.so** → platform (admin login, tenant management).
+- **https://dhisme.so/login** → platform admin login.
 - **https://[tenant-slug].dhisme.so** (e.g. a tenant you created) → tenant login.
+- **https://[unknown].dhisme.so** (subdomain with no tenant) → redirects to **https://dhisme.so/contact** (contact page with +252907700949).
 
 If it still says “This site can’t be reached” or **DNS_PROBE_FINISHED_NXDOMAIN**, wait a bit longer for DNS or double‑check that the nameservers for **dhisme.so** are exactly **ns1.vercel-dns.com** and **ns2.vercel-dns.com** at SOSTEC.

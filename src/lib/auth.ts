@@ -17,12 +17,16 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 export async function setTenantSession(userId: string, tenantId: string): Promise<string> {
   const cookieStore = await cookies();
   const token = `${userId}:${tenantId}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+  const isProduction = process.env.NODE_ENV === "production";
+  const platformDomain = process.env.PLATFORM_DOMAIN || "localhost:3000";
+  const domain = isProduction && platformDomain.includes(".") ? `.${platformDomain.split(":")[0]}` : undefined;
   cookieStore.set(TENANT_SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction,
     sameSite: "lax",
     maxAge: SESSION_MAX_AGE,
     path: "/",
+    ...(domain && { domain }),
   });
   return token;
 }

@@ -1,14 +1,15 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { getTenantForRequest } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, setTenantSession } from "@/lib/auth";
 
+export type TenantLoginResult = { error?: string } | { success: true };
+
 export async function tenantLoginAction(
   _prev: unknown,
   formData: FormData
-): Promise<{ error?: string } | null> {
+): Promise<TenantLoginResult> {
   const tenant = await getTenantForRequest();
   const emailRaw = (formData.get("email") as string)?.trim() ?? "";
   const email = emailRaw.toLowerCase();
@@ -37,5 +38,5 @@ export async function tenantLoginAction(
   if (!ok) return { error: "Invalid email or password" };
 
   await setTenantSession(user.id, tenant.id);
-  redirect("/dashboard");
+  return { success: true };
 }

@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { getTenantForRequest } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, getTenantSession } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { verifyPassword, setTenantSession } from "@/lib/auth";
 
 export async function tenantLoginAction(
   _prev: unknown,
@@ -15,12 +14,14 @@ export async function tenantLoginAction(
   const password = formData.get("password") as string;
   if (!email || !password) return { error: "Email and password required" };
 
-  if (tenant.email !== email) return { error: "Invalid email or password" };
-  const t = await prisma.tenant.findUnique({ where: { id: tenant.id }, select: { password: true } });
-  if (!t) return { error: "Invalid email or password" };
-  const ok = await verifyPassword(password, t.password);
+  const user = await prisma.user.findFirst({
+    where: { tenantId: tenant.id, email, isActive: true, deletedAt: null },
+    select: { id: true, password: true },
+  });
+  if (!user) return { error: "Invalid email or password" };
+  const ok = await verifyPassword(password, user.password);
   if (!ok) return { error: "Invalid email or password" };
 
-  await getTenantSession(tenant.id);
+  await setTenantSession(user.id, tenant.id);
   redirect("/dashboard");
 }

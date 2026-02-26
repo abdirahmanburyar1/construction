@@ -10,12 +10,12 @@ export default async function TenantAppLayout({
 }) {
   const tenant = await getTenantForRequest();
   const session = await getTenantFromSession();
-  if (!session || session.id !== tenant.id) {
+  if (!session || session.tenantId !== tenant.id) {
     redirect("/login");
   }
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <TenantNav />
+      <TenantNav userEmail={session.email} tenantName={tenant.name} />
       <main className="flex-1 overflow-auto">
         <div className="p-6 lg:p-8">{children}</div>
       </main>

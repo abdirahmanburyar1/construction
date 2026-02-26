@@ -14,7 +14,7 @@ export const getTenantForRequest = cache(async () => {
 
   const tenant = await getTenantBySlug(slug);
   if (!tenant) redirect(`${BASE_URL}/suspended`);
-  if (!isSubscriptionActive(tenant.subscriptionStatus, tenant.subscriptionExpiryDate)) {
+  if (!isSubscriptionActive(tenant.status, tenant.subscriptionExpiryDate)) {
     redirect(`${BASE_URL}/suspended`);
   }
   return tenant;

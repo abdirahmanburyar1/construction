@@ -14,11 +14,9 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export async function getTenantSession(tenantId: string): Promise<string> {
+export async function setTenantSession(userId: string, tenantId: string): Promise<string> {
   const cookieStore = await cookies();
-  const existing = cookieStore.get(TENANT_SESSION_COOKIE)?.value;
-  if (existing) return existing;
-  const token = `${tenantId}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+  const token = `${userId}:${tenantId}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
   cookieStore.set(TENANT_SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -29,17 +27,30 @@ export async function getTenantSession(tenantId: string): Promise<string> {
   return token;
 }
 
-export async function getTenantFromSession(): Promise<{ id: string; email: string } | null> {
+export type TenantSession = {
+  userId: string;
+  tenantId: string;
+  email: string;
+  role: string;
+};
+
+export async function getTenantFromSession(): Promise<TenantSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(TENANT_SESSION_COOKIE)?.value;
   if (!token) return null;
-  const [tenantId] = token.split(":");
-  if (!tenantId) return null;
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { id: true, email: true },
+  const [userId, tenantId] = token.split(":");
+  if (!userId || !tenantId) return null;
+  const user = await prisma.user.findFirst({
+    where: { id: userId, tenantId, isActive: true, deletedAt: null },
+    select: { id: true, email: true, role: true, tenantId: true },
   });
-  return tenant;
+  if (!user) return null;
+  return {
+    userId: user.id,
+    tenantId: user.tenantId,
+    email: user.email,
+    role: user.role,
+  };
 }
 
 export async function clearTenantSession(): Promise<void> {

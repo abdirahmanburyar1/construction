@@ -15,14 +15,13 @@ export default async function MaterialsPage({
   const skip = (current - 1) * PAGE_SIZE;
 
   const [materials, total] = await Promise.all([
-    prisma.material.findMany({
+    prisma.materialCatalog.findMany({
       where: { tenantId: tenant.id },
       take: PAGE_SIZE,
       skip,
-      orderBy: { purchasedAt: "desc" },
-      include: { project: { select: { name: true } } },
+      orderBy: { name: "asc" },
     }),
-    prisma.material.count({ where: { tenantId: tenant.id } }),
+    prisma.materialCatalog.count({ where: { tenantId: tenant.id } }),
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -31,8 +30,8 @@ export default async function MaterialsPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="page-title">Materials</h1>
-          <p className="page-subtitle">Purchase records and costs per project</p>
+          <h1 className="page-title">Materials catalog</h1>
+          <p className="page-subtitle">Materials and units for procurement and BOQ</p>
         </div>
         <Link href="/materials/new" className="btn btn-primary shrink-0">
           Add material
@@ -44,30 +43,23 @@ export default async function MaterialsPage({
           <thead>
             <tr>
               <th>Name</th>
-              <th>Project</th>
-              <th>Quantity</th>
               <th>Unit</th>
-              <th>Unit price</th>
-              <th>Total</th>
-              <th>Date</th>
             </tr>
           </thead>
           <tbody>
             {materials.map((m) => (
               <tr key={m.id}>
                 <td className="font-medium text-slate-800">{m.name}</td>
-                <td>
-                  <Link href={`/projects/${m.projectId}`} className="text-teal-600 hover:underline">
-                    {m.project.name}
-                  </Link>
-                </td>
-                <td>{String(m.quantity)}</td>
-                <td>{m.unit}</td>
-                <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(m.unitPrice))}</td>
-                <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(m.totalPrice))}</td>
-                <td>{new Date(m.purchasedAt).toLocaleDateString()}</td>
+                <td className="text-slate-600">{m.unit}</td>
               </tr>
             ))}
+            {materials.length === 0 && (
+              <tr>
+                <td colSpan={2} className="text-slate-500">
+                  No materials in catalog. Add one to get started.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

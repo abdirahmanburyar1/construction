@@ -59,20 +59,15 @@ export function CreateTenantForm({
       <div>
         <label htmlFor="subscriptionStatus" className="label">Subscription status</label>
         <select id="subscriptionStatus" name="subscriptionStatus" className="input">
+          <option value="TRIAL">TRIAL</option>
           <option value="ACTIVE">ACTIVE</option>
           <option value="EXPIRED">EXPIRED</option>
           <option value="SUSPENDED">SUSPENDED</option>
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="subscriptionStartDate" className="label">Start date</label>
-          <input id="subscriptionStartDate" name="subscriptionStartDate" type="date" className="input" />
-        </div>
-        <div>
-          <label htmlFor="subscriptionExpiryDate" className="label">Expiry date</label>
-          <input id="subscriptionExpiryDate" name="subscriptionExpiryDate" type="date" className="input" />
-        </div>
+      <div>
+        <label htmlFor="subscriptionExpiryDate" className="label">Expiry date</label>
+        <input id="subscriptionExpiryDate" name="subscriptionExpiryDate" type="date" className="input" />
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">

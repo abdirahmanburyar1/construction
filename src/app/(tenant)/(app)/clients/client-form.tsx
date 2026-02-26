@@ -4,9 +4,7 @@ import { useFormState } from "react-dom";
 import { createClientAction } from "./actions";
 import Link from "next/link";
 
-type Project = { id: string; name: string };
-
-export function ClientForm({ projects }: { projects: Project[] }) {
+export function ClientForm() {
   const [state, formAction] = useFormState(createClientAction, null);
 
   return (
@@ -34,19 +32,6 @@ export function ClientForm({ projects }: { projects: Project[] }) {
           Address
         </label>
         <textarea id="address" name="address" rows={2} className="input" />
-      </div>
-      <div>
-        <label htmlFor="projectId" className="mb-1 block text-sm font-medium text-slate-700">
-          Project (optional)
-        </label>
-        <select id="projectId" name="projectId" className="input">
-          <option value="">None</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">

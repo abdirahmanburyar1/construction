@@ -14,14 +14,8 @@ export async function createClientAction(
   const email = (formData.get("email") as string)?.trim() || null;
   const phone = (formData.get("phone") as string)?.trim() || null;
   const address = (formData.get("address") as string)?.trim() || null;
-  const projectId = (formData.get("projectId") as string)?.trim() || null;
 
   if (!name) return { error: "Name required" };
-
-  if (projectId) {
-    const project = await prisma.project.findFirst({ where: { id: projectId, tenantId: tenant.id } });
-    if (!project) return { error: "Project not found" };
-  }
 
   await prisma.client.create({
     data: {
@@ -30,7 +24,6 @@ export async function createClientAction(
       email,
       phone,
       address,
-      projectId,
     },
   });
   revalidatePath("/clients");

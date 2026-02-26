@@ -1,110 +1,608 @@
+// =============================================================================
+// CONSTRUCTION SAAS — Multi-tenant, shared DB, shared schema, tenantId on all tenant tables
+// Platform models: NO tenantId. Tenant models: MUST have tenantId + indexes.
+// Money: Decimal(15,2). Indexes: composite on (tenantId, ...) for all tenant tables.
+// =============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
+// -----------------------------------------------------------------------------
+// PLATFORM MODELS (SaaS owner — no tenantId)
+// -----------------------------------------------------------------------------
 
 model Admin {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  EXPIRED
 }
 
 model Tenant {
-  id                    String    @id @default(cuid())
-  companyName           String
-  slug                  String    @unique
-  email                 String    @unique
-  password              String
-  subscriptionStatus    String    @default("ACTIVE") // ACTIVE | EXPIRED | SUSPENDED
-  subscriptionStartDate DateTime?
-  subscriptionExpiryDate DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                    String       @id @default(cuid())
+  name                  String
+  subdomain             String       @unique
+  status                TenantStatus @default(TRIAL)
+  planId                String?
+  plan                  Plan?        @relation(fields: [planId], references: [id], onDelete: SetNull)
+  subscriptionExpiryAt  DateTime?
+  trialEndsAt           DateTime?
+  deletedAt             DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
 
-  projects Project[]
-  materials Material[]
-  expenses  Expense[]
-  clients   Client[]
+  users                 User[]
+  projects              Project[]
+  expenses              Expense[]
+  clients               Client[]
+  invoices              Invoice[]
+  phases                Phase[]
+  suppliers             Supplier[]
+  materials             MaterialCatalog[]
+  purchaseOrders        PurchaseOrder[]
+  workers               Worker[]
+  payrolls              Payroll[]
+  equipment             Equipment[]
+  stockMovements        StockMovement[]
+  auditLogs             AuditLog[]
+  tenantFeatureOverrides TenantFeatureOverride[]
+  subscriptions        Subscription[]
 
-  @@index([slug])
-  @@index([subscriptionStatus])
+  @@index([status])
+  @@index([planId])
+  @@index([deletedAt])
+}
+
+model Plan {
+  id            String   @id @default(cuid())
+  name          String   // Basic | Pro | Enterprise
+  slug          String   @unique
+  maxProjects   Int      @default(10)
+  maxUsers      Int      @default(5)
+  maxStorageMB  Int      @default(1024)
+  priceMonthly  Decimal  @db.Decimal(15, 2)
+  priceYearly   Decimal? @db.Decimal(15, 2)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenants       Tenant[]
+  planFeatures  PlanFeature[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id            String    @id @default(cuid())
+  tenantId      String
+  planId        String
+  plan          Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status        String    // active | cancelled | past_due
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  stripeCustomerId   String?
+  stripeSubscriptionId String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([tenantId])
+  @@index([planId])
+  @@index([status])
+}
+
+model PlatformInvoice {
+  id            String   @id @default(cuid())
+  tenantId      String
+  amount        Decimal  @db.Decimal(15, 2)
+  status        String   // draft | sent | paid | overdue
+  dueDate       DateTime
+  paidAt        DateTime?
+  stripeInvoiceId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model PlatformPayment {
+  id              String   @id @default(cuid())
+  platformInvoiceId String?
+  amount          Decimal  @db.Decimal(15, 2)
+  stripePaymentId String?
+  paidAt          DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([platformInvoiceId])
+}
+
+model Feature {
+  id          String   @id @default(cuid())
+  key         String   @unique  // e.g. EQUIPMENT_MODULE, LABOR_MODULE
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  planFeatures         PlanFeature[]
+  tenantFeatureOverrides TenantFeatureOverride[]
+}
+
+model PlanFeature {
+  id         String   @id @default(cuid())
+  planId     String
+  featureId  String
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature    Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([planId, featureId])
+  @@index([planId])
+  @@index([featureId])
+}
+
+model TenantFeatureOverride {
+  id         String   @id @default(cuid())
+  tenantId   String
+  featureId  String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  feature    Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, featureId])
+  @@index([tenantId])
+  @@index([featureId])
+}
+
+model LoginLog {
+  id         String   @id @default(cuid())
+  userId     String?  // tenant user or null for admin
+  adminId    String?
+  tenantId   String?
+  email      String
+  success    Boolean
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// TENANT MODELS (all include tenantId + composite indexes)
+// -----------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN   // platform only
+  COMPANY_ADMIN
+  PROJECT_MANAGER
+  SITE_ENGINEER
+  ACCOUNTANT
+  STORE_MANAGER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  password  String
+  role      Role
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isActive  Boolean  @default(true)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([tenantId, role])
+  @@index([email])
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
 }
 
 model Project {
-  id              String    @id @default(cuid())
-  tenantId        String
-  name            String
-  description     String?
-  estimatedBudget  Decimal?  @db.Decimal(14, 2)
-  status          String    @default("Planning") // Planning | Ongoing | Completed
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  budget      Decimal       @db.Decimal(15, 2)
+  status      ProjectStatus @default(PLANNING)
+  startDate   DateTime
+  endDate     DateTime?
+  clientId    String?
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client      Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  deletedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  materials Material[]
-  expenses  Expense[]
-  clients   Client[]
+  expenses    Expense[]
+  invoices    Invoice[]
+  phases      Phase[]
+  purchaseOrderItems PurchaseOrderItem[] // materials issued to project
 
   @@index([tenantId])
   @@index([tenantId, status])
+  @@index([tenantId, startDate])
+  @@index([clientId])
+  @@index([tenantId, name])
 }
 
-model Material {
+model Phase {
   id          String   @id @default(cuid())
-  tenantId    String
-  projectId   String
   name        String
-  quantity    Decimal  @db.Decimal(14, 4)
-  unit        String
-  unitPrice   Decimal  @db.Decimal(14, 2)
-  totalPrice  Decimal  @db.Decimal(14, 2)
-  purchasedAt DateTime @default(now())
-  notes       String?
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  costItems   CostItem[]
 
   @@index([tenantId])
   @@index([projectId])
-  @@index([tenantId, purchasedAt])
+  @@index([tenantId, projectId])
+}
+
+enum CostItemCategory {
+  MATERIAL
+  LABOR
+  EQUIPMENT
+  SUBCONTRACT
+  OTHER
+}
+
+model CostItem {
+  id             String          @id @default(cuid())
+  name           String
+  estimatedCost  Decimal         @db.Decimal(15, 2)
+  category       CostItemCategory
+  phaseId        String
+  phase          Phase           @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  sortOrder      Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([phaseId])
+}
+
+enum ExpenseCategory {
+  MATERIAL
+  LABOR
+  EQUIPMENT
+  SUBCONTRACT
+  OTHER
 }
 
 model Expense {
-  id          String   @id @default(cuid())
-  tenantId    String
+  id          String         @id @default(cuid())
+  title       String
+  amount      Decimal        @db.Decimal(15, 2)
+  category    ExpenseCategory
   projectId   String
-  category    String   // Labor | Transport | Equipment | Permits | Miscellaneous
-  amount      Decimal  @db.Decimal(14, 2)
-  description String?
-  expenseDate DateTime @default(now())
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  approved    Boolean        @default(false)
+  createdById String?
+  expenseDate DateTime       @default(now())
+  deletedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, projectId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, category])
   @@index([projectId])
-  @@index([tenantId, expenseDate])
 }
 
 model Client {
-  id        String   @id @default(cuid())
-  tenantId  String
-  projectId String?
+  id        String    @id @default(cuid())
   name      String
-  email     String?
   phone     String?
+  email     String?
   address   String?
-  createdAt DateTime @default(now())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projects  Project[]
 
   @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  amount      Decimal       @db.Decimal(15, 2)
+  status      InvoiceStatus @default(DRAFT)
+  dueDate     DateTime
+  paidAt      DateTime?
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deletedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
   @@index([projectId])
+}
+
+// ---- Procurement ----
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  phone     String?
+  email     String?
+  address   String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+model MaterialCatalog {
+  id          String   @id @default(cuid())
+  name        String
+  unit        String
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchaseOrderItems PurchaseOrderItem[]
+  stockMovements      StockMovement[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model PurchaseOrder {
+  id          String   @id @default(cuid())
+  number      String
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status      String   @default("draft") // draft | sent | received
+  orderDate   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       PurchaseOrderItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, createdAt])
+  @@index([supplierId])
+}
+
+model PurchaseOrderItem {
+  id               String         @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  materialId       String?
+  material         MaterialCatalog? @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  projectId        String?
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name             String        // free text if no material
+  quantity         Decimal       @db.Decimal(15, 4)
+  unitPrice        Decimal       @db.Decimal(15, 2)
+  totalPrice       Decimal       @db.Decimal(15, 2)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([materialId])
+  @@index([projectId])
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model StockMovement {
+  id          String           @id @default(cuid())
+  materialId  String
+  material    MaterialCatalog  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  type        StockMovementType
+  quantity    Decimal          @db.Decimal(15, 4)
+  projectId   String?
+  reference   String?          // PO number or note
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@index([tenantId])
+  @@index([materialId])
+  @@index([tenantId, materialId])
+  @@index([createdAt])
+}
+
+// ---- Labor & Payroll ----
+
+model Worker {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  phone     String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendances  Attendance[]
+  payrollItems PayrollItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  workerId  String
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  hours     Decimal  @db.Decimal(5, 2)
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, workerId, date])
+  @@index([tenantId])
+  @@index([tenantId, workerId, date])
+  @@index([tenantId, date])
+}
+
+model Payroll {
+  id          String   @id @default(cuid())
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+  status      String   @default("draft") // draft | approved | paid
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       PayrollItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, periodStart])
+}
+
+model PayrollItem {
+  id         String   @id @default(cuid())
+  payrollId  String
+  payroll    Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  workerId   String
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  amount     Decimal  @db.Decimal(15, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([payrollId])
+  @@index([workerId])
+}
+
+// ---- Equipment ----
+
+model Equipment {
+  id          String   @id @default(cuid())
+  name        String
+  type        String?
+  isRental    Boolean  @default(false)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  maintenanceLogs MaintenanceLog[]
+  equipmentUsages EquipmentUsage[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+model MaintenanceLog {
+  id          String   @id @default(cuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  description String
+  cost        Decimal?  @db.Decimal(15, 2)
+  performedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([equipmentId])
+  @@index([performedAt])
+}
+
+model EquipmentUsage {
+  id          String   @id @default(cuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  projectId   String?
+  startDate   DateTime
+  endDate     DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([equipmentId])
+  @@index([projectId])
+}
+
+// ---- Audit (tenantId nullable for platform actions) ----
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  adminId    String?
+  tenantId   String?
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  action     String   // CREATE | UPDATE | DELETE
+  entity     String   // Project | Expense | Invoice | ...
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@index([entity, entityId])
+  @@index([createdAt])
 }

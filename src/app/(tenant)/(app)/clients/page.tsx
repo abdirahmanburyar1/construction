@@ -20,7 +20,7 @@ export default async function ClientsPage({
       take: PAGE_SIZE,
       skip,
       orderBy: { createdAt: "desc" },
-      include: { project: { select: { name: true } } },
+      include: { projects: { select: { id: true, name: true } } },
     }),
     prisma.client.count({ where: { tenantId: tenant.id } }),
   ]);
@@ -46,7 +46,7 @@ export default async function ClientsPage({
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
-              <th>Project</th>
+              <th>Projects</th>
             </tr>
           </thead>
           <tbody>
@@ -56,10 +56,14 @@ export default async function ClientsPage({
                 <td>{c.email ?? "—"}</td>
                 <td>{c.phone ?? "—"}</td>
                 <td>
-                  {c.project ? (
-                    <Link href={`/projects/${c.projectId}`} className="text-teal-600 hover:underline">
-                      {c.project.name}
-                    </Link>
+                  {c.projects.length > 0 ? (
+                    <span className="flex flex-wrap gap-1">
+                      {c.projects.map((p) => (
+                        <Link key={p.id} href={`/projects/${p.id}`} className="text-teal-600 hover:underline">
+                          {p.name}
+                        </Link>
+                      ))}
+                    </span>
                   ) : (
                     "—"
                   )}

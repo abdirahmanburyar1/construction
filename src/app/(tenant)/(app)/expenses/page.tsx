@@ -3,8 +3,6 @@ import { getTenantForRequest } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 10;
-const CATEGORIES = ["Labor", "Transport", "Equipment", "Permits", "Miscellaneous"];
-
 export default async function ExpensesPage({
   searchParams,
 }: {
@@ -44,17 +42,18 @@ export default async function ExpensesPage({
         <table>
           <thead>
             <tr>
+              <th>Title</th>
               <th>Category</th>
               <th>Project</th>
               <th>Amount</th>
               <th>Date</th>
-              <th>Description</th>
             </tr>
           </thead>
           <tbody>
             {expenses.map((e) => (
               <tr key={e.id}>
-                <td className="font-medium text-slate-800">{e.category}</td>
+                <td className="font-medium text-slate-800">{e.title}</td>
+                <td className="text-slate-600">{e.category}</td>
                 <td>
                   <Link href={`/projects/${e.projectId}`} className="text-teal-600 hover:underline">
                     {e.project.name}
@@ -62,7 +61,6 @@ export default async function ExpensesPage({
                 </td>
                 <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(e.amount))}</td>
                 <td>{new Date(e.expenseDate).toLocaleDateString()}</td>
-                <td className="max-w-xs truncate text-slate-500">{e.description ?? "—"}</td>
               </tr>
             ))}
           </tbody>

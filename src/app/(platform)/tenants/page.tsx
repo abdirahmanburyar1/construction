@@ -21,19 +21,23 @@ export default async function TenantsPage({
     prisma.tenant.findMany({
       take: PAGE_SIZE,
       skip,
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
-        companyName: true,
-        slug: true,
-        email: true,
-        subscriptionStatus: true,
-        subscriptionStartDate: true,
-        subscriptionExpiryDate: true,
+        name: true,
+        subdomain: true,
+        status: true,
+        subscriptionExpiryAt: true,
         createdAt: true,
+        users: {
+          take: 1,
+          orderBy: { createdAt: "asc" },
+          select: { email: true },
+        },
       },
     }),
-    prisma.tenant.count(),
+    prisma.tenant.count({ where: { deletedAt: null } }),
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -58,31 +62,29 @@ export default async function TenantsPage({
           <thead className="border-b border-slate-200 bg-slate-50">
             <tr>
               <th className="px-5 py-3.5 font-semibold text-slate-700">Company</th>
-              <th className="px-5 py-3.5 font-semibold text-slate-700">Slug</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Subdomain</th>
               <th className="px-5 py-3.5 font-semibold text-slate-700">Tenant URL</th>
-              <th className="px-5 py-3.5 font-semibold text-slate-700">Email</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Admin email</th>
               <th className="px-5 py-3.5 font-semibold text-slate-700">Status</th>
-              <th className="px-5 py-3.5 font-semibold text-slate-700">Start</th>
               <th className="px-5 py-3.5 font-semibold text-slate-700">Expiry</th>
               <th className="px-5 py-3.5 font-semibold text-slate-700"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {tenants.map((t) => {
-              const tenantUrl = `${baseUrl}${t.slug}.${platformDomain}`;
+              const tenantUrl = `${baseUrl}${t.subdomain}.${platformDomain}`;
               return (
                 <tr key={t.id} className="transition-colors hover:bg-slate-50/50">
-                  <td className="px-5 py-3.5 font-medium text-slate-800">{t.companyName}</td>
-                  <td className="px-5 py-3.5 text-slate-600">{t.slug}</td>
+                  <td className="px-5 py-3.5 font-medium text-slate-800">{t.name}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.subdomain}</td>
                   <td className="px-5 py-3.5">
                     <a href={tenantUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-teal-600 hover:text-teal-700">
                       {tenantUrl}
                     </a>
                   </td>
-                  <td className="px-5 py-3.5 text-slate-600">{t.email}</td>
-                  <td className="px-5 py-3.5 text-slate-600">{t.subscriptionStatus}</td>
-                  <td className="px-5 py-3.5 text-slate-600">{t.subscriptionStartDate ? new Date(t.subscriptionStartDate).toLocaleDateString() : "—"}</td>
-                  <td className="px-5 py-3.5 text-slate-600">{t.subscriptionExpiryDate ? new Date(t.subscriptionExpiryDate).toLocaleDateString() : "—"}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.users[0]?.email ?? "—"}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.status}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{t.subscriptionExpiryAt ? new Date(t.subscriptionExpiryAt).toLocaleDateString() : "—"}</td>
                   <td className="px-5 py-3.5">
                     <Link href={`/tenants/${t.id}/edit`} className="font-medium text-teal-600 hover:text-teal-700">
                       Edit

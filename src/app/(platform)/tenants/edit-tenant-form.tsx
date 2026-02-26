@@ -3,16 +3,26 @@
 import { useFormState } from "react-dom";
 import { updateTenantAction } from "./actions";
 import Link from "next/link";
-import type { Tenant } from "@prisma/client";
 
-export function EditTenantForm({ tenant }: { tenant: Tenant }) {
+type TenantEdit = {
+  id: string;
+  name: string;
+  subdomain: string;
+  status: string;
+  subscriptionExpiryAt: Date | null;
+};
+
+export function EditTenantForm({
+  tenant,
+  adminEmail,
+}: {
+  tenant: TenantEdit;
+  adminEmail: string;
+}) {
   const [state, formAction] = useFormState(updateTenantAction, null);
 
-  const start = tenant.subscriptionStartDate
-    ? new Date(tenant.subscriptionStartDate).toISOString().slice(0, 10)
-    : "";
-  const expiry = tenant.subscriptionExpiryDate
-    ? new Date(tenant.subscriptionExpiryDate).toISOString().slice(0, 10)
+  const expiry = tenant.subscriptionExpiryAt
+    ? new Date(tenant.subscriptionExpiryAt).toISOString().slice(0, 10)
     : "";
 
   return (
@@ -20,15 +30,15 @@ export function EditTenantForm({ tenant }: { tenant: Tenant }) {
       <input type="hidden" name="id" value={tenant.id} />
       <div>
         <label htmlFor="companyName" className="label">Company name</label>
-        <input id="companyName" name="companyName" required className="input" defaultValue={tenant.companyName} />
+        <input id="companyName" name="companyName" required className="input" defaultValue={tenant.name} />
       </div>
       <div>
-        <label htmlFor="slug" className="label">Slug (subdomain)</label>
-        <input id="slug" name="slug" required className="input" defaultValue={tenant.slug} />
+        <label htmlFor="slug" className="label">Subdomain</label>
+        <input id="slug" name="slug" required className="input" defaultValue={tenant.subdomain} />
       </div>
       <div>
-        <label htmlFor="email" className="label">Email</label>
-        <input id="email" name="email" type="email" required className="input" defaultValue={tenant.email} />
+        <label htmlFor="email" className="label">Admin email</label>
+        <input id="email" name="email" type="email" required className="input" defaultValue={adminEmail} />
       </div>
       <div>
         <label htmlFor="password" className="label">New password (leave blank to keep)</label>
@@ -36,21 +46,16 @@ export function EditTenantForm({ tenant }: { tenant: Tenant }) {
       </div>
       <div>
         <label htmlFor="subscriptionStatus" className="label">Subscription status</label>
-        <select id="subscriptionStatus" name="subscriptionStatus" className="input" defaultValue={tenant.subscriptionStatus}>
+        <select id="subscriptionStatus" name="subscriptionStatus" className="input" defaultValue={tenant.status}>
+          <option value="TRIAL">TRIAL</option>
           <option value="ACTIVE">ACTIVE</option>
           <option value="EXPIRED">EXPIRED</option>
           <option value="SUSPENDED">SUSPENDED</option>
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="subscriptionStartDate" className="label">Start date</label>
-          <input id="subscriptionStartDate" name="subscriptionStartDate" type="date" className="input" defaultValue={start} />
-        </div>
-        <div>
-          <label htmlFor="subscriptionExpiryDate" className="label">Expiry date</label>
-          <input id="subscriptionExpiryDate" name="subscriptionExpiryDate" type="date" className="input" defaultValue={expiry} />
-        </div>
+      <div>
+        <label htmlFor="subscriptionExpiryDate" className="label">Expiry date</label>
+        <input id="subscriptionExpiryDate" name="subscriptionExpiryDate" type="date" className="input" defaultValue={expiry} />
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">

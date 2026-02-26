@@ -8,18 +8,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const tenant = await getTenantForRequest();
   const { id } = await params;
 
-  const project = await prisma.project.findFirst({
-    where: { id, tenantId: tenant.id },
-    include: {
-      materials: true,
-      expenses: true,
-    },
-  });
+  const [project, clients] = await Promise.all([
+    prisma.project.findFirst({
+      where: { id, tenantId: tenant.id },
+      include: { expenses: true },
+    }),
+    prisma.client.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true } }),
+  ]);
   if (!project) notFound();
 
-  const totalMaterials = project.materials.reduce((s, m) => s + Number(m.totalPrice), 0);
   const totalExpenses = project.expenses.reduce((s, e) => s + Number(e.amount), 0);
-  const totalInvestment = totalMaterials + totalExpenses;
 
   return (
     <div className="space-y-8">
@@ -30,11 +28,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </Link>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2">
         <div className="stat-card">
-          <span className="stat-label">Materials cost</span>
+          <span className="stat-label">Budget</span>
           <span className="stat-value">
-            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalMaterials)}
+            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(project.budget))}
           </span>
         </div>
         <div className="stat-card">
@@ -43,91 +41,46 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalExpenses)}
           </span>
         </div>
-        <div className="stat-card">
-          <span className="stat-label">Total investment</span>
-          <span className="stat-value-accent">
-            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalInvestment)}
-          </span>
-        </div>
       </div>
 
       <div className="card">
         <h2 className="card-header">Edit project</h2>
-        <ProjectForm project={project} />
+        <ProjectForm project={project} clients={clients} />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="card">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="card-header">Materials</h2>
-            <Link href={`/materials/new?projectId=${project.id}`} className="btn btn-primary text-sm">
-              Add
-            </Link>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Qty</th>
-                  <th>Unit price</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {project.materials.map((m) => (
-                  <tr key={m.id}>
-                    <td>{m.name}</td>
-                    <td>{String(m.quantity)}</td>
-                    <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(m.unitPrice))}</td>
-                    <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(m.totalPrice))}</td>
-                  </tr>
-                ))}
-                {project.materials.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="text-slate-500">
-                      No materials
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+      <div className="card">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="card-header">Expenses</h2>
+          <Link href={`/expenses/new?projectId=${project.id}`} className="btn btn-primary text-sm">
+            Add
+          </Link>
         </div>
-        <div className="card">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="card-header">Expenses</h2>
-            <Link href={`/expenses/new?projectId=${project.id}`} className="btn btn-primary text-sm">
-              Add
-            </Link>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>Date</th>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {project.expenses.map((e) => (
+                <tr key={e.id}>
+                  <td>{e.title}</td>
+                  <td>{e.category}</td>
+                  <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(e.amount))}</td>
+                  <td>{new Date(e.expenseDate).toLocaleDateString()}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {project.expenses.map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.category}</td>
-                    <td>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(e.amount))}</td>
-                    <td>{new Date(e.expenseDate).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-                {project.expenses.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="text-slate-500">
-                      No expenses
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {project.expenses.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="text-slate-500">No expenses</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

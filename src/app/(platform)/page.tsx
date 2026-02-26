@@ -12,8 +12,8 @@ export default async function PlatformDashboardPage() {
   if (!admin) redirect("/login");
 
   const [totalTenants, activeTenants] = await Promise.all([
-    prisma.tenant.count(),
-    prisma.tenant.count({ where: { subscriptionStatus: "ACTIVE" } }),
+    prisma.tenant.count({ where: { deletedAt: null } }),
+    prisma.tenant.count({ where: { deletedAt: null, status: { in: ["ACTIVE", "TRIAL"] } } }),
   ]);
 
   return (

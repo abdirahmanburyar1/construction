@@ -7,7 +7,10 @@ import { ProjectForm } from "../../project-form";
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const tenant = await getTenantForRequest();
   const { id } = await params;
-  const project = await prisma.project.findFirst({ where: { id, tenantId: tenant.id } });
+  const [project, clients] = await Promise.all([
+    prisma.project.findFirst({ where: { id, tenantId: tenant.id } }),
+    prisma.client.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true } }),
+  ]);
   if (!project) notFound();
 
   return (
@@ -18,7 +21,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
           ← Back
         </Link>
       </div>
-      <ProjectForm project={project} />
+      <ProjectForm project={project} clients={clients} />
     </div>
   );
 }

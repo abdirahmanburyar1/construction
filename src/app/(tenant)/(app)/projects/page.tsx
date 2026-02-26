@@ -44,7 +44,7 @@ export default async function ProjectsPage({
             <tr>
               <th className="px-5 py-3.5 font-semibold text-slate-700">Name</th>
               <th className="px-5 py-3.5 font-semibold text-slate-700">Status</th>
-              <th className="px-5 py-3.5 font-semibold text-slate-700">Estimated budget</th>
+              <th className="px-5 py-3.5 font-semibold text-slate-700">Budget</th>
               <th className="px-5 py-3.5 font-semibold text-slate-700"></th>
             </tr>
           </thead>
@@ -54,9 +54,7 @@ export default async function ProjectsPage({
                 <td className="px-5 py-3.5 font-medium text-slate-800">{p.name}</td>
                 <td className="px-5 py-3.5 text-slate-600">{p.status}</td>
                 <td className="px-5 py-3.5 text-slate-600">
-                  {p.estimatedBudget != null
-                    ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(p.estimatedBudget))
-                    : "—"}
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(p.budget))}
                 </td>
                 <td className="px-5 py-3.5">
                   <Link href={`/projects/${p.id}`} className="font-medium text-teal-600 hover:text-teal-700">

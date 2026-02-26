@@ -3,9 +3,8 @@ import { prisma } from "./prisma";
 export type TenantContext = {
   id: string;
   slug: string;
-  companyName: string;
-  email: string;
-  subscriptionStatus: string;
+  name: string;
+  status: string;
   subscriptionExpiryDate: Date | null;
 };
 
@@ -27,17 +26,25 @@ export function getSubdomain(host: string): string | null {
 
 export async function getTenantBySlug(slug: string): Promise<TenantContext | null> {
   const tenant = await prisma.tenant.findUnique({
-    where: { slug },
+    where: { subdomain: slug, deletedAt: null },
     select: {
       id: true,
-      slug: true,
-      companyName: true,
-      email: true,
-      subscriptionStatus: true,
-      subscriptionExpiryDate: true,
+      subdomain: true,
+      name: true,
+      status: true,
+      subscriptionExpiryAt: true,
+      trialEndsAt: true,
     },
   });
-  return tenant;
+  if (!tenant) return null;
+  const subscriptionExpiryDate = tenant.subscriptionExpiryAt ?? tenant.trialEndsAt ?? null;
+  return {
+    id: tenant.id,
+    slug: tenant.subdomain,
+    name: tenant.name,
+    status: tenant.status,
+    subscriptionExpiryDate,
+  };
 }
 
 export function isSubscriptionActive(status: string, expiryDate: Date | null): boolean {

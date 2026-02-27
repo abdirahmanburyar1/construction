@@ -1,22 +1,24 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { headers } from "next/headers";
-import { getTenantBySlug, getSubdomain, isSubscriptionActive } from "./tenant";
-
-const PLATFORM_DOMAIN = process.env.PLATFORM_DOMAIN || "localhost:3000";
-const isProduction = !PLATFORM_DOMAIN.includes("localhost");
-const BASE_URL = `${isProduction ? "https" : "http"}://${PLATFORM_DOMAIN}`;
+import { prisma } from "./prisma";
 
 export const getTenantForRequest = cache(async () => {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") || h.get("host") || "";
-  const slug = h.get("x-tenant-slug") || getSubdomain(host);
-  if (!slug) redirect(`${BASE_URL}/`);
+  // Temporarily bypass subdomain check and just return the first tenant
+  const tenant = await prisma.tenant.findFirst({
+    where: { deletedAt: null },
+    orderBy: { createdAt: 'asc' }
+  });
 
-  const tenant = await getTenantBySlug(slug);
-  if (!tenant) redirect(`${BASE_URL}/contact`);
-  if (!isSubscriptionActive(tenant.status, tenant.subscriptionExpiryDate)) {
-    redirect(`${BASE_URL}/suspended`);
+  if (!tenant) {
+    throw new Error("No tenant found. Please create a tenant in the database first.");
   }
-  return tenant;
+
+  const subscriptionExpiryDate = tenant.subscriptionExpiryAt ?? tenant.trialEndsAt ?? null;
+  return {
+    id: tenant.id,
+    slug: tenant.subdomain,
+    name: tenant.name,
+    status: tenant.status,
+    subscriptionExpiryDate,
+  };
 });

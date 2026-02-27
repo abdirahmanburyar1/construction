@@ -1,67 +1,246 @@
 "use client";
 
 import { useFormState } from "react-dom";
+import { useState, useCallback, useMemo } from "react";
 import { createExpenseAction } from "./actions";
 import Link from "next/link";
-
-const CATEGORIES = [
-  { value: "MATERIAL", label: "Material" },
-  { value: "LABOR", label: "Labor" },
-  { value: "EQUIPMENT", label: "Equipment" },
-  { value: "SUBCONTRACT", label: "Subcontract" },
-  { value: "OTHER", label: "Other" },
-];
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 type Project = { id: string; name: string };
 
+type Material = { id: string; name: string; unit: string };
+
+type ItemRow = {
+  id: string;
+  materialId: string;
+  qty: string;
+  unitPrice: string;
+};
+
+function nextId() {
+  return Math.random().toString(36).slice(2, 11);
+}
+
 export function ExpenseForm({
   projects,
+  materials,
   defaultProjectId,
 }: {
   projects: Project[];
+  materials: Material[];
   defaultProjectId?: string;
 }) {
   const [state, formAction] = useFormState(createExpenseAction, null);
+  const [projectId, setProjectId] = useState(defaultProjectId ?? "");
+  const [items, setItems] = useState<ItemRow[]>([
+    { id: nextId(), materialId: "", qty: "", unitPrice: "" },
+  ]);
+
+  const projectOptions = projects.map((p) => ({ value: p.id, label: p.name }));
+  const allMaterialOptions = useMemo(
+    () =>
+      materials.map((m) => ({
+        value: m.id,
+        label: `${m.name} (${m.unit})`,
+      })),
+    [materials]
+  );
+
+  const getMaterialOptionsForRow = useCallback(
+    (rowId: string) => {
+      const selectedInOtherRows = new Set(
+        items.filter((r) => r.id !== rowId && r.materialId).map((r) => r.materialId)
+      );
+      const currentRowMaterialId = items.find((r) => r.id === rowId)?.materialId;
+      return allMaterialOptions.filter(
+        (opt) =>
+          opt.value === currentRowMaterialId || !selectedInOtherRows.has(opt.value)
+      );
+    },
+    [items, allMaterialOptions]
+  );
+
+  const addRow = useCallback(() => {
+    setItems((prev) => [...prev, { id: nextId(), materialId: "", qty: "", unitPrice: "" }]);
+  }, []);
+
+  const removeRow = useCallback((id: string) => {
+    setItems((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  }, []);
+
+  const updateRow = useCallback((id: string, field: keyof ItemRow, value: string) => {
+    setItems((prev) => {
+      const updated = prev.map((r) => (r.id === id ? { ...r, [field]: value } : r));
+      if (field !== "materialId") return updated;
+      const idx = updated.findIndex((r) => r.id === id);
+      if (idx < 0 || idx >= updated.length - 1) return updated;
+      const next = updated[idx + 1];
+      const nextEmpty =
+        !next.materialId &&
+        (next.qty === "" || Number.isNaN(parseFloat(next.qty)) || parseFloat(next.qty) === 0) &&
+        (next.unitPrice === "" || Number.isNaN(parseFloat(next.unitPrice)) || parseFloat(next.unitPrice) === 0);
+      if (nextEmpty && updated.length > 1) {
+        return updated.filter((r) => r.id !== next.id);
+      }
+      return updated;
+    });
+  }, []);
+
+  const totalFor = (qty: string, unitPrice: string) => {
+    const q = parseFloat(qty);
+    const u = parseFloat(unitPrice);
+    if (Number.isNaN(q) || Number.isNaN(u)) return "";
+    return (q * u).toFixed(2);
+  };
+
+  const inputUnderline =
+    "w-full min-w-0 border-0 border-b border-slate-300 bg-transparent px-0 py-1.5 text-sm focus:border-teal-500 focus:outline-none focus:ring-0";
 
   return (
-    <form action={formAction} className="max-w-md space-y-4">
-      <div>
-        <label htmlFor="projectId" className="mb-1 block text-sm font-medium text-slate-700">Project</label>
-        <select id="projectId" name="projectId" required className="input" defaultValue={defaultProjectId}>
-          <option value="">Select project</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+    <form action={formAction} className="max-w-4xl space-y-6">
+      {/* Header: Project + Date */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="projectId" className="mb-1 block text-sm font-medium text-slate-700">
+            Project
+          </label>
+          <SearchableSelect
+            name="projectId"
+            value={projectId}
+            onChange={setProjectId}
+            options={projectOptions}
+            placeholder="Select project"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="expenseDate" className="mb-1 block text-sm font-medium text-slate-700">
+            Date
+          </label>
+          <input
+            id="expenseDate"
+            name="expenseDate"
+            type="date"
+            required
+            className="input w-full"
+            defaultValue={new Date().toISOString().slice(0, 10)}
+          />
+        </div>
       </div>
+
+      {/* Items table */}
       <div>
-        <label htmlFor="title" className="mb-1 block text-sm font-medium text-slate-700">Title</label>
-        <input id="title" name="title" required className="input" placeholder="e.g. Cement delivery" />
+        <div className="mb-2">
+          <span className="text-sm font-semibold text-slate-700">Items</span>
+        </div>
+        <div className="table-wrap border-0 shadow-none">
+          <table>
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Qty</th>
+                <th>Unit price</th>
+                <th>Total</th>
+                <th className="w-24"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => (
+                <tr key={row.id}>
+                  <td className="min-w-[140px]">
+                    <SearchableSelect
+                      name="materialId"
+                      value={row.materialId}
+                      onChange={(v) => updateRow(row.id, "materialId", v)}
+                      options={getMaterialOptionsForRow(row.id)}
+                      placeholder="Select material"
+                      required
+                      className="min-w-[140px]"
+                      inputClassName={inputUnderline + " min-w-[140px] cursor-pointer rounded-none"}
+                    />
+                  </td>
+                  <td className="min-w-[80px]">
+                    <input
+                      name="qty"
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      className={inputUnderline}
+                      placeholder="0"
+                      value={row.qty}
+                      onChange={(e) => updateRow(row.id, "qty", e.target.value)}
+                    />
+                  </td>
+                  <td className="min-w-[90px]">
+                    <input
+                      name="unitPrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={inputUnderline}
+                      placeholder="0.00"
+                      value={row.unitPrice}
+                      onChange={(e) => updateRow(row.id, "unitPrice", e.target.value)}
+                    />
+                  </td>
+                  <td className="text-slate-600 font-medium">
+                    {totalFor(row.qty, row.unitPrice) ? (
+                      new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+                        parseFloat(totalFor(row.qty, row.unitPrice))
+                      )
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="w-24">
+                    <span className="flex items-center justify-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={addRow}
+                        className="flex items-center justify-center rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-teal-600"
+                        aria-label="Add row"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                          <path d="M5 12h14" />
+                          <path d="M12 5v14" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRow(row.id)}
+                        className="flex items-center justify-center rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                        aria-label="Remove row"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          <line x1="10" x2="10" y1="11" y2="17" />
+                          <line x1="14" x2="14" y1="11" y2="17" />
+                        </svg>
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {materials.length === 0 && (
+          <p className="mt-2 text-sm text-amber-600">
+            No materials in catalog. <Link href="/materials/new" className="underline">Add materials</Link> first to select them here.
+          </p>
+        )}
       </div>
-      <div>
-        <label htmlFor="category" className="mb-1 block text-sm font-medium text-slate-700">Category</label>
-        <select id="category" name="category" required className="input">
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="amount" className="mb-1 block text-sm font-medium text-slate-700">Amount</label>
-        <input id="amount" name="amount" type="number" step="0.01" min="0" required className="input" />
-      </div>
-      <div>
-        <label htmlFor="expenseDate" className="mb-1 block text-sm font-medium text-slate-700">Date</label>
-        <input id="expenseDate" name="expenseDate" type="date" required className="input" defaultValue={new Date().toISOString().slice(0, 10)} />
-      </div>
-      <div>
-        <label htmlFor="description" className="mb-1 block text-sm font-medium text-slate-700">Notes (optional)</label>
-        <textarea id="description" name="description" rows={2} className="input" />
-      </div>
+
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary">Add</button>
-        <Link href="/expenses" className="btn btn-secondary">Cancel</Link>
+        <button type="submit" className="btn btn-primary">
+          Add expense
+        </button>
+        <Link href="/expenses" className="btn btn-secondary">
+          Cancel
+        </Link>
       </div>
     </form>
   );

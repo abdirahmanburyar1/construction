@@ -309,7 +309,9 @@ enum ExpenseCategory {
 model Expense {
   id          String         @id @default(cuid())
   title       String
-  amount      Decimal        @db.Decimal(15, 2)
+  amount      Decimal        @db.Decimal(15, 2) // Total cost
+  quantity    Decimal?       @db.Decimal(15, 4) // Optional quantity
+  unitCost    Decimal?       @db.Decimal(15, 2) // Optional unit cost
   category    ExpenseCategory
   projectId   String
   project     Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
@@ -322,11 +324,26 @@ model Expense {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  items       ExpenseItem[]
+
   @@index([tenantId])
   @@index([tenantId, projectId])
   @@index([tenantId, createdAt])
   @@index([tenantId, category])
   @@index([projectId])
+}
+
+model ExpenseItem {
+  id         String   @id @default(cuid())
+  expenseId  String
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  materials  String   // Description / name of item
+  quantity   Decimal  @db.Decimal(15, 4)
+  unitPrice  Decimal  @db.Decimal(15, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([expenseId])
 }
 
 model Client {

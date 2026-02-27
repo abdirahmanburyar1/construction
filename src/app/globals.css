@@ -82,3 +82,41 @@ body {
     @apply bg-teal-50 text-teal-700 hover:bg-teal-100 hover:text-teal-800;
   }
 }
+
+/* Single receipt print: hide all except the receipt with .print-this-receipt */
+@media print {
+  body.print-single-receipt * {
+    visibility: hidden;
+  }
+  body.print-single-receipt .print-this-receipt,
+  body.print-single-receipt .print-this-receipt * {
+    visibility: visible;
+  }
+  body.print-single-receipt .print-this-receipt {
+    position: relative;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    padding: 0.5rem;
+    background: white;
+    box-shadow: none;
+    border: none;
+    visibility: visible;
+  }
+  /* One page: customer + office copy side by side */
+  body.print-single-receipt .print-this-receipt.receipt-two-copies {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: stretch;
+    page-break-inside: avoid;
+  }
+  body.print-single-receipt .print-this-receipt .receipt-copy {
+    flex: 1;
+    min-width: 0;
+    page-break-inside: avoid;
+    border: 1px solid #e2e8f0;
+  }
+}

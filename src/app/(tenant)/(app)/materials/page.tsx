@@ -43,6 +43,7 @@ export default async function MaterialsPage({
           <thead>
             <tr>
               <th>Name</th>
+              <th>Category</th>
               <th>Unit</th>
             </tr>
           </thead>
@@ -50,12 +51,13 @@ export default async function MaterialsPage({
             {materials.map((m) => (
               <tr key={m.id}>
                 <td className="font-medium text-slate-800">{m.name}</td>
+                <td className="text-slate-600">{m.category || "—"}</td>
                 <td className="text-slate-600">{m.unit}</td>
               </tr>
             ))}
             {materials.length === 0 && (
               <tr>
-                <td colSpan={2} className="text-slate-500">
+                <td colSpan={3} className="text-slate-500">
                   No materials in catalog. Add one to get started.
                 </td>
               </tr>

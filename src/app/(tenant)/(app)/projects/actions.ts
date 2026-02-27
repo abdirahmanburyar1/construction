@@ -93,10 +93,299 @@ export async function updateProjectAction(
   return null;
 }
 
+export async function updateProjectStatusAction(formData: FormData): Promise<void> {
+  const tenant = await getTenantForRequest();
+  const projectId = formData.get("projectId") as string;
+  const status = formData.get("status") as string;
+  if (!projectId) return;
+  const validStatus = PROJECT_STATUSES.includes(status as (typeof PROJECT_STATUSES)[number])
+    ? status
+    : "PLANNING";
+  await prisma.project.updateMany({
+    where: { id: projectId, tenantId: tenant.id },
+    data: { status: validStatus as "PLANNING" | "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED" },
+  });
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/dashboard");
+}
+
 export async function deleteProjectAction(tenantId: string, projectId: string): Promise<void> {
   const tenant = await getTenantForRequest();
   if (tenant.id !== tenantId) return;
   await prisma.project.deleteMany({ where: { id: projectId, tenantId: tenant.id } });
   revalidatePath("/projects");
   revalidatePath("/dashboard");
+}
+
+// ---- Project installments ----
+export async function createProjectInstallmentAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<{ error?: string } | null> {
+  const tenant = await getTenantForRequest();
+  const projectId = (formData.get("projectId") as string)?.trim();
+  const label = (formData.get("label") as string)?.trim();
+  const amountRaw = formData.get("amount") as string;
+  const dueDateRaw = formData.get("dueDate") as string;
+
+  if (!projectId || !label) return { error: "Label required" };
+  const amount = amountRaw ? parseFloat(amountRaw) : 0;
+  if (Number.isNaN(amount) || amount < 0) return { error: "Valid amount required" };
+  if (!dueDateRaw) return { error: "Due date required" };
+
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, tenantId: tenant.id },
+  });
+  if (!project) return { error: "Project not found" };
+
+  const dueDate = new Date(dueDateRaw);
+  const count = await prisma.projectInstallment.count({
+    where: { projectId, tenantId: tenant.id },
+  });
+
+  await prisma.projectInstallment.create({
+    data: {
+      tenantId: tenant.id,
+      projectId,
+      label,
+      amount,
+      dueDate,
+      sortOrder: count,
+    },
+  });
+  revalidatePath(`/projects/${projectId}`);
+  return null;
+}
+
+export async function deleteProjectInstallmentAction(formData: FormData): Promise<void> {
+  const tenant = await getTenantForRequest();
+  const projectId = (formData.get("projectId") as string)?.trim();
+  const installmentId = (formData.get("installmentId") as string)?.trim();
+  if (!projectId || !installmentId) return;
+  await prisma.projectInstallment.deleteMany({
+    where: { id: installmentId, projectId, tenantId: tenant.id },
+  });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+// ---- Project deposits & receipts ----
+function formatReceiptNumber(n: number): string {
+  return n < 10000 ? n.toString().padStart(4, "0") : n.toString();
+}
+
+export async function createProjectDepositAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<{ error?: string } | { success?: boolean } | null> {
+  const tenant = await getTenantForRequest();
+  const projectId = (formData.get("projectId") as string)?.trim();
+  const amountRaw = formData.get("amount") as string;
+  const paidAtRaw = (formData.get("paidAt") as string)?.trim();
+  const reference = (formData.get("reference") as string)?.trim() || null;
+  const paymentMethod = (formData.get("paymentMethod") as string)?.trim() || null;
+  const accountNo = (formData.get("accountNo") as string)?.trim() || null;
+  const notes = (formData.get("notes") as string)?.trim() || null;
+
+  if (!projectId) return { error: "Project required" };
+  const amount = amountRaw ? parseFloat(amountRaw) : 0;
+  if (Number.isNaN(amount) || amount <= 0) return { error: "Valid amount required" };
+
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, tenantId: tenant.id },
+  });
+  if (!project) return { error: "Project not found" };
+
+  const paidAt = paidAtRaw ? new Date(paidAtRaw) : new Date();
+
+  await prisma.$transaction(async (tx) => {
+    const t = await tx.tenant.update({
+      where: { id: tenant.id },
+      data: { lastReceiptNumber: { increment: 1 } },
+      select: { lastReceiptNumber: true },
+    });
+    const receiptNumber = formatReceiptNumber(t.lastReceiptNumber);
+    await tx.projectDeposit.create({
+      data: {
+        tenantId: tenant.id,
+        projectId,
+        amount,
+        paidAt,
+        reference,
+        receiptNumber,
+        paymentMethod,
+        accountNo,
+        notes,
+      },
+    });
+  });
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
+
+export async function deleteProjectDepositAction(formData: FormData): Promise<void> {
+  const tenant = await getTenantForRequest();
+  const projectId = (formData.get("projectId") as string)?.trim();
+  const depositId = (formData.get("depositId") as string)?.trim();
+  if (!projectId || !depositId) return;
+  await prisma.projectDeposit.deleteMany({
+    where: { id: depositId, projectId, tenantId: tenant.id },
+  });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+// ---- Project documents ----
+const ALLOWED_DOC_MIME_PREFIXES = ["image/", "application/pdf"];
+
+export async function createProjectDocumentAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<{ error?: string } | { success: true } | null> {
+  const tenant = await getTenantForRequest();
+  const projectId = (formData.get("projectId") as string)?.trim();
+  const name = (formData.get("name") as string)?.trim();
+  const fileUrl = (formData.get("fileUrl") as string)?.trim();
+  const mimeType = (formData.get("mimeType") as string)?.trim();
+
+  if (!projectId || !name || !fileUrl || !mimeType) return { error: "Missing required fields" };
+  const allowed = ALLOWED_DOC_MIME_PREFIXES.some((p) => mimeType.toLowerCase().startsWith(p));
+  if (!allowed) return { error: "Only images and PDFs are allowed" };
+
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, tenantId: tenant.id },
+  });
+  if (!project) return { error: "Project not found" };
+
+  const projectDocument = (prisma as unknown as { projectDocument?: { create: (args: { data: object }) => Promise<unknown> } })
+    .projectDocument;
+  if (!projectDocument) {
+    return {
+      error:
+        "Document storage is not available. Run: npx prisma generate (and npx prisma migrate dev if you haven’t).",
+    };
+  }
+
+  const docTableMissing =
+    "Document tables are missing. Run: npx prisma migrate deploy (then npx prisma generate if needed).";
+
+  try {
+    await projectDocument.create({
+      data: {
+        tenantId: tenant.id,
+        projectId,
+        name,
+        fileUrl,
+        mimeType,
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("does not exist") || (e as { code?: string })?.code === "P2021") {
+      return { error: docTableMissing };
+    }
+    throw e;
+  }
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
+
+export async function deleteProjectDocumentAction(formData: FormData): Promise<void> {
+  const tenant = await getTenantForRequest();
+  const projectId = (formData.get("projectId") as string)?.trim();
+  const documentId = (formData.get("documentId") as string)?.trim();
+  if (!projectId || !documentId) return;
+  const projectDocument = (prisma as unknown as { projectDocument?: { deleteMany: (args: { where: object }) => Promise<unknown> } })
+    .projectDocument;
+  if (!projectDocument) return;
+  try {
+    await projectDocument.deleteMany({
+      where: { id: documentId, projectId, tenantId: tenant.id },
+    });
+  } catch {
+    // Table may not exist; ignore so page doesn't crash
+  }
+  revalidatePath(`/projects/${projectId}`);
+}
+
+// ---- Expense documents ----
+export async function createExpenseDocumentAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<{ error?: string } | { success: true } | null> {
+  const tenant = await getTenantForRequest();
+  const expenseId = (formData.get("expenseId") as string)?.trim();
+  const name = (formData.get("name") as string)?.trim();
+  const fileUrl = (formData.get("fileUrl") as string)?.trim();
+  const mimeType = (formData.get("mimeType") as string)?.trim();
+
+  if (!expenseId || !name || !fileUrl || !mimeType) return { error: "Missing required fields" };
+  const allowed = ALLOWED_DOC_MIME_PREFIXES.some((p) => mimeType.toLowerCase().startsWith(p));
+  if (!allowed) return { error: "Only images and PDFs are allowed" };
+
+  const expense = await prisma.expense.findFirst({
+    where: { id: expenseId, tenantId: tenant.id },
+    select: { projectId: true },
+  });
+  if (!expense) return { error: "Expense not found" };
+
+  const expenseDocument = (
+    prisma as unknown as { expenseDocument?: { create: (args: { data: object }) => Promise<unknown> } }
+  ).expenseDocument;
+  if (!expenseDocument) {
+    return {
+      error:
+        "Document storage is not available. Run: npx prisma generate (and npx prisma migrate dev if you haven’t).",
+    };
+  }
+
+  const docTableMissing =
+    "Document tables are missing. Run: npx prisma migrate deploy (then npx prisma generate if needed).";
+
+  try {
+    await expenseDocument.create({
+      data: {
+        tenantId: tenant.id,
+        expenseId,
+        name,
+        fileUrl,
+        mimeType,
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("does not exist") || (e as { code?: string })?.code === "P2021") {
+      return { error: docTableMissing };
+    }
+    throw e;
+  }
+  revalidatePath(`/projects/${expense.projectId}`);
+  return { success: true };
+}
+
+export async function deleteExpenseDocumentAction(formData: FormData): Promise<void> {
+  const tenant = await getTenantForRequest();
+  const documentId = (formData.get("documentId") as string)?.trim();
+  if (!documentId) return;
+  const expenseDocument = (
+    prisma as unknown as {
+      expenseDocument?: {
+        findFirst: (args: { where: object; select: object }) => Promise<{ expense: { projectId: string } } | null>;
+        deleteMany: (args: { where: object }) => Promise<unknown>;
+      };
+    }
+  ).expenseDocument;
+  if (!expenseDocument) return;
+  try {
+    const doc = await expenseDocument.findFirst({
+      where: { id: documentId, tenantId: tenant.id },
+      select: { expense: { select: { projectId: true } } },
+    });
+    if (!doc) return;
+    await expenseDocument.deleteMany({
+      where: { id: documentId, tenantId: tenant.id },
+    });
+    revalidatePath(`/projects/${doc.expense.projectId}`);
+  } catch {
+    // Table may not exist; ignore so page doesn't crash
+  }
 }

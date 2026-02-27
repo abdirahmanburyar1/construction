@@ -36,6 +36,10 @@ model Tenant {
   id                    String       @id @default(cuid())
   name                  String
   subdomain             String       @unique
+  logoUrl               String?      // Company logo (ImageKit URL)
+  faviconUrl            String?      // Favicon (ImageKit URL)
+  businessInfo          String?      // Company description for receipts
+  lastReceiptNumber     Int          @default(0) // Sequential receipt # (0001, 0002, ...)
   status                TenantStatus @default(TRIAL)
   planId                String?
   plan                  Plan?        @relation(fields: [planId], references: [id], onDelete: SetNull)
@@ -61,6 +65,10 @@ model Tenant {
   auditLogs             AuditLog[]
   tenantFeatureOverrides TenantFeatureOverride[]
   subscriptions        Subscription[]
+  projectInstallments   ProjectInstallment[]
+  projectDeposits      ProjectDeposit[]
+  projectDocuments     ProjectDocument[]
+  expenseDocuments     ExpenseDocument[]
 
   @@index([status])
   @@index([planId])
@@ -246,16 +254,76 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  expenses    Expense[]
-  invoices    Invoice[]
-  phases      Phase[]
+  expenses     Expense[]
+  invoices     Invoice[]
+  phases       Phase[]
   purchaseOrderItems PurchaseOrderItem[] // materials issued to project
+  installments ProjectInstallment[]
+  deposits     ProjectDeposit[]
+  documents    ProjectDocument[]
 
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, startDate])
   @@index([clientId])
   @@index([tenantId, name])
+}
+
+model ProjectDocument {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name       String   // display name
+  fileUrl    String   // ImageKit or storage URL
+  mimeType   String   // image/* or application/pdf
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, projectId])
+  @@index([projectId, createdAt])
+}
+
+model ProjectInstallment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  label     String   // e.g. "Deposit", "Stage 1", "Final"
+  amount    Decimal  @db.Decimal(15, 2)
+  dueDate   DateTime
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, projectId])
+}
+
+model ProjectDeposit {
+  id             String    @id @default(cuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount         Decimal   @db.Decimal(15, 2)
+  paidAt         DateTime  @default(now())
+  reference      String?   // check no, transaction ref
+  receiptNumber  String?   // Receipt # for display/print
+  paymentMethod  String?   // e.g. Cash, Cheque, Bank Transfer
+  accountNo      String?   // bank/account number
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, projectId])
+  @@index([projectId, paidAt])
 }
 
 model Phase {
@@ -325,12 +393,31 @@ model Expense {
   updatedAt   DateTime       @updatedAt
 
   items       ExpenseItem[]
+  documents   ExpenseDocument[]
 
   @@index([tenantId])
   @@index([tenantId, projectId])
   @@index([tenantId, createdAt])
   @@index([tenantId, category])
   @@index([projectId])
+  @@index([projectId, expenseDate])
+}
+
+model ExpenseDocument {
+  id         String   @id @default(cuid())
+  expenseId  String
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name       String
+  fileUrl    String
+  mimeType   String   // image/* or application/pdf
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([expenseId])
+  @@index([tenantId, expenseId])
+  @@index([expenseId, createdAt])
 }
 
 model ExpenseItem {
@@ -416,6 +503,7 @@ model MaterialCatalog {
   id          String   @id @default(cuid())
   name        String
   unit        String
+  category    String?  // e.g. Cement, Steel, Electrical
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
@@ -426,6 +514,7 @@ model MaterialCatalog {
 
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([tenantId, category])
 }
 
 model PurchaseOrder {

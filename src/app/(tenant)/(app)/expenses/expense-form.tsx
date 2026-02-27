@@ -1,14 +1,31 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useFormState, useFormStatus } from "react-dom";
 import { useState, useCallback, useMemo } from "react";
-import { createExpenseAction } from "./actions";
 import Link from "next/link";
+import { createExpenseAction } from "./actions";
 import { SearchableSelect } from "@/components/SearchableSelect";
+import { useFormAlert } from "@/components/useFormAlert";
+import { AddMaterialModal } from "./add-material-modal";
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={pending}>
+      {pending && (
+        <svg className="h-4 w-4 shrink-0 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      )}
+      {pending ? "Adding…" : "Add expense"}
+    </button>
+  );
+}
 
 type Project = { id: string; name: string };
 
-type Material = { id: string; name: string; unit: string };
+type Material = { id: string; name: string; unit: string; category?: string | null };
 
 type ItemRow = {
   id: string;
@@ -16,6 +33,8 @@ type ItemRow = {
   qty: string;
   unitPrice: string;
 };
+
+const ADD_NEW_MATERIAL_VALUE = "__add_new_material__";
 
 function nextId() {
   return Math.random().toString(36).slice(2, 11);
@@ -31,19 +50,29 @@ export function ExpenseForm({
   defaultProjectId?: string;
 }) {
   const [state, formAction] = useFormState(createExpenseAction, null);
+  useFormAlert(state);
   const [projectId, setProjectId] = useState(defaultProjectId ?? "");
+  const [materialsList, setMaterialsList] = useState<Material[]>(materials);
   const [items, setItems] = useState<ItemRow[]>([
     { id: nextId(), materialId: "", qty: "", unitPrice: "" },
   ]);
+  const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
+  const [addMaterialForRowId, setAddMaterialForRowId] = useState<string | null>(null);
 
   const projectOptions = projects.map((p) => ({ value: p.id, label: p.name }));
   const allMaterialOptions = useMemo(
     () =>
-      materials.map((m) => ({
+      materialsList.map((m) => ({
         value: m.id,
-        label: `${m.name} (${m.unit})`,
+        label: `${m.name} (${m.unit})${m.category ? ` · ${m.category}` : ""}`,
       })),
-    [materials]
+    [materialsList]
+  );
+
+  const initialCategories = useMemo(
+    () =>
+      Array.from(new Set(materialsList.map((m) => m.category).filter(Boolean))).sort() as string[],
+    [materialsList]
   );
 
   const getMaterialOptionsForRow = useCallback(
@@ -52,10 +81,14 @@ export function ExpenseForm({
         items.filter((r) => r.id !== rowId && r.materialId).map((r) => r.materialId)
       );
       const currentRowMaterialId = items.find((r) => r.id === rowId)?.materialId;
-      return allMaterialOptions.filter(
+      const base = allMaterialOptions.filter(
         (opt) =>
           opt.value === currentRowMaterialId || !selectedInOtherRows.has(opt.value)
       );
+      return [
+        ...base,
+        { value: ADD_NEW_MATERIAL_VALUE, label: "+ Add new material" },
+      ];
     },
     [items, allMaterialOptions]
   );
@@ -85,6 +118,30 @@ export function ExpenseForm({
       return updated;
     });
   }, []);
+
+  const handleMaterialSelectChange = useCallback(
+    (rowId: string, value: string) => {
+      if (value === ADD_NEW_MATERIAL_VALUE) {
+        setAddMaterialForRowId(rowId);
+        setShowAddMaterialModal(true);
+        return;
+      }
+      updateRow(rowId, "materialId", value);
+    },
+    [updateRow]
+  );
+
+  const handleAddMaterialSuccess = useCallback(
+    (material: Material) => {
+      setMaterialsList((prev) => [...prev, material]);
+      if (addMaterialForRowId) {
+        updateRow(addMaterialForRowId, "materialId", material.id);
+      }
+      setAddMaterialForRowId(null);
+      setShowAddMaterialModal(false);
+    },
+    [addMaterialForRowId, updateRow]
+  );
 
   const totalFor = (qty: string, unitPrice: string) => {
     const q = parseFloat(qty);
@@ -151,7 +208,7 @@ export function ExpenseForm({
                     <SearchableSelect
                       name="materialId"
                       value={row.materialId}
-                      onChange={(v) => updateRow(row.id, "materialId", v)}
+                      onChange={(v) => handleMaterialSelectChange(row.id, v)}
                       options={getMaterialOptionsForRow(row.id)}
                       placeholder="Select material"
                       required
@@ -226,18 +283,26 @@ export function ExpenseForm({
             </tbody>
           </table>
         </div>
-        {materials.length === 0 && (
+        {materialsList.length === 0 && (
           <p className="mt-2 text-sm text-amber-600">
-            No materials in catalog. <Link href="/materials/new" className="underline">Add materials</Link> first to select them here.
+            No materials in catalog. Use &quot;+ Add new material&quot; in the dropdown or <Link href="/materials/new" className="underline">add materials</Link> first.
           </p>
         )}
       </div>
 
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {showAddMaterialModal && (
+        <AddMaterialModal
+          initialCategories={initialCategories}
+          onSuccess={handleAddMaterialSuccess}
+          onClose={() => {
+            setShowAddMaterialModal(false);
+            setAddMaterialForRowId(null);
+          }}
+        />
+      )}
+
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary">
-          Add expense
-        </button>
+        <SubmitButton />
         <Link href="/expenses" className="btn btn-secondary">
           Cancel
         </Link>

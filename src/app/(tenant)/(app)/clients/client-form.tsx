@@ -3,9 +3,11 @@
 import { useFormState } from "react-dom";
 import { createClientAction } from "./actions";
 import Link from "next/link";
+import { useFormAlert } from "@/components/useFormAlert";
 
 export function ClientForm() {
   const [state, formAction] = useFormState(createClientAction, null);
+  useFormAlert(state);
 
   return (
     <form action={formAction} className="max-w-md space-y-4">
@@ -33,7 +35,6 @@ export function ClientForm() {
         </label>
         <textarea id="address" name="address" rows={2} className="input" />
       </div>
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">
         <button type="submit" className="btn btn-primary">
           Add

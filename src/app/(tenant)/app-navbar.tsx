@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
+import Swal from "sweetalert2";
 import { tenantLogoutAction } from "@/app/(tenant)/actions";
 
 export function AppNavbar({
@@ -12,6 +14,24 @@ export function AppNavbar({
   tenantName: string;
   onMenuClick?: () => void;
 }) {
+  const logoutFormRef = useRef<HTMLFormElement>(null);
+
+  const handleLogoutClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    const result = await Swal.fire({
+      title: "Log out?",
+      text: "You will need to sign in again to access the app.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#0d9488",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Log out",
+    });
+    if (result.isConfirmed && logoutFormRef.current) {
+      logoutFormRef.current.requestSubmit();
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6">
       <div className="flex items-center gap-2">
@@ -49,9 +69,10 @@ export function AppNavbar({
             {userEmail}
           </p>
         </div>
-        <form action={tenantLogoutAction}>
+        <form ref={logoutFormRef} action={tenantLogoutAction}>
           <button
-            type="submit"
+            type="button"
+            onClick={handleLogoutClick}
             className="flex items-center gap-1.5 rounded-lg px-2 py-2 sm:px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <svg

@@ -1,12 +1,21 @@
 import { getTenantForRequest } from "@/lib/tenant-context";
+import { prisma } from "@/lib/prisma";
 import { MaterialForm } from "../material-form";
 
 export default async function NewMaterialPage() {
-  await getTenantForRequest();
+  const tenant = await getTenantForRequest();
+  const rows = await prisma.materialCatalog.findMany({
+    where: { tenantId: tenant.id, category: { not: null } },
+    select: { category: true },
+    distinct: ["category"],
+    orderBy: { category: "asc" },
+  });
+  const categories = rows.map((r) => r.category).filter((c): c is string => c != null);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-slate-800">Add material to catalog</h1>
-      <MaterialForm />
+      <MaterialForm initialCategories={categories} />
     </div>
   );
 }

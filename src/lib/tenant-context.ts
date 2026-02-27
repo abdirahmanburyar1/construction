@@ -20,5 +20,6 @@ export const getTenantForRequest = cache(async () => {
     name: tenant.name,
     status: tenant.status,
     subscriptionExpiryDate,
+    faviconUrl: tenant.faviconUrl ?? null,
   };
 });

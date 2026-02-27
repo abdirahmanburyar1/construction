@@ -7,7 +7,9 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
+    "build:full": "prisma generate && next build",
+    "prisma:generate": "prisma generate",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -16,11 +18,13 @@
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@imagekit/next": "^2.1.5",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
     "next": "14.2.18",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sweetalert2": "^11.26.20",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -31,8 +35,8 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "prisma": "^5.22.0",
-    "tsx": "^4.19.2",
     "tailwindcss": "^3.4.15",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }

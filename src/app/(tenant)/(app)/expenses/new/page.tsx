@@ -18,7 +18,7 @@ export default async function NewExpensePage({
     prisma.materialCatalog.findMany({
       where: { tenantId: tenant.id },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, unit: true },
+      select: { id: true, name: true, unit: true, category: true },
     }),
   ]);
   return (

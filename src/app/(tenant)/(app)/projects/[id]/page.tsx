@@ -2,6 +2,45 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTenantForRequest } from "@/lib/tenant-context";
 import { prisma } from "@/lib/prisma";
+import { updateProjectStatusAction } from "../actions";
+import { ProjectStatusButton } from "@/components/ProjectStatusButton";
+import { ProjectDetailTabs } from "./project-detail-tabs";
+
+type ExpenseDoc = { id: string; expenseId: string; name: string; fileUrl: string; mimeType: string; createdAt: Date };
+type ProjectDoc = { id: string; name: string; fileUrl: string; mimeType: string; createdAt: Date };
+
+// Project query result shape (matches schema; use after prisma generate for full type inference)
+interface ProjectWithIncludes {
+  id: string;
+  name: string;
+  budget: unknown;
+  status: string;
+  location: string | null;
+  client: { id: string; name: string } | null;
+  expenses: Array<{
+    id: string;
+    title: string;
+    amount: unknown;
+    expenseDate: Date;
+    items: unknown[];
+    documents: ExpenseDoc[];
+  }>;
+  installments: Array<{ id: string; label: string; amount: unknown; dueDate: Date; sortOrder: number }>;
+  deposits: Array<{
+    id: string;
+    amount: unknown;
+    paidAt: Date;
+    reference: string | null;
+    receiptNumber: string | null;
+    paymentMethod: string | null;
+    accountNo: string | null;
+    notes: string | null;
+  }>;
+}
+interface TenantReceiptInfo {
+  logoUrl: string | null;
+  businessInfo: string | null;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   PLANNING: "Planning",
@@ -23,30 +62,82 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const tenant = await getTenantForRequest();
   const { id } = await params;
 
-  const project = await prisma.project.findFirst({
-    where: { id, tenantId: tenant.id },
-    include: {
-      expenses: {
-        include: { items: true },
-        orderBy: { expenseDate: "desc" },
+  const expenseDocDelegate = (prisma as { expenseDocument?: { findMany: (args: object) => Promise<ExpenseDoc[]> } })
+    .expenseDocument;
+  const projectDocDelegate = (prisma as { projectDocument?: { findMany: (args: object) => Promise<ProjectDoc[]> } })
+    .projectDocument;
+
+  const [projectRaw, tenantReceiptInfoRaw, expenseDocuments, projectDocuments] = await Promise.all([
+    prisma.project.findFirst({
+      where: { id, tenantId: tenant.id },
+      include: {
+        expenses: {
+          include: { items: true },
+          orderBy: { expenseDate: "desc" as const },
+        },
+        client: { select: { id: true, name: true } },
+        installments: { orderBy: { sortOrder: "asc" } },
+        deposits: { orderBy: { paidAt: "desc" } },
       },
-      client: { select: { id: true, name: true } },
-    },
-  });
+    } as Parameters<typeof prisma.project.findFirst>[0]),
+    prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      select: { logoUrl: true, businessInfo: true },
+    } as Parameters<typeof prisma.tenant.findUnique>[0]),
+    expenseDocDelegate
+      ? expenseDocDelegate
+          .findMany({
+            where: {
+              tenantId: tenant.id,
+              expense: { projectId: id },
+            },
+            orderBy: { createdAt: "desc" },
+          })
+          .catch(() => [] as ExpenseDoc[])
+      : Promise.resolve([] as ExpenseDoc[]),
+    projectDocDelegate
+      ? projectDocDelegate
+          .findMany({
+            where: { projectId: id, tenantId: tenant.id },
+            orderBy: { createdAt: "desc" },
+          })
+          .catch(() => [] as ProjectDoc[])
+      : Promise.resolve([] as ProjectDoc[]),
+  ]);
+  const project = projectRaw as ProjectWithIncludes | null;
+  const tenantReceiptInfo = tenantReceiptInfoRaw as TenantReceiptInfo | null;
   if (!project) notFound();
 
-  const totalExpenses = project.expenses.reduce((s, e) => s + Number(e.amount), 0);
+  // Attach documents to each expense (avoids include on Expense for compatibility)
+  const docsByExpenseId = expenseDocuments.reduce<Record<string, ExpenseDoc[]>>(
+    (acc: Record<string, ExpenseDoc[]>, doc: ExpenseDoc) => {
+      if (!acc[doc.expenseId]) acc[doc.expenseId] = [];
+      acc[doc.expenseId].push(doc);
+      return acc;
+    },
+    {}
+  );
+  const expensesWithDocuments = project.expenses.map((e: (typeof project.expenses)[number]) => ({
+    ...e,
+    documents: docsByExpenseId[e.id] ?? [],
+  }));
+  const projectWithExpenseDocs = {
+    ...project,
+    expenses: expensesWithDocuments,
+    documents: projectDocuments,
+  };
+  const tenantName = tenant.name;
+  const tenantLogoUrl = tenantReceiptInfo?.logoUrl ?? null;
+  const tenantBusinessInfo = tenantReceiptInfo?.businessInfo ?? null;
+
+  const totalExpenses = project.expenses.reduce((s: number, e: (typeof project.expenses)[number]) => s + Number(e.amount), 0);
+  const totalReceived = project.deposits.reduce((s: number, d: (typeof project.deposits)[number]) => s + Number(d.amount), 0);
   const budgetNum = Number(project.budget);
   const remaining = Math.max(0, budgetNum - totalExpenses);
   const spendPercent = budgetNum > 0 ? Math.min(100, (totalExpenses / budgetNum) * 100) : 0;
 
-  const expensesByDate = project.expenses.reduce<Record<string, typeof project.expenses>>((acc, e) => {
-    const key = new Date(e.expenseDate).toISOString().slice(0, 10);
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(e);
-    return acc;
-  }, {});
-  const sortedDates = Object.keys(expensesByDate).sort((a, b) => b.localeCompare(a));
+  const isActive = project.status === "ACTIVE" || project.status === "PLANNING";
+  const canAddExpense = isActive || project.status === "ON_HOLD";
 
   return (
     <div className="space-y-8">
@@ -69,9 +160,70 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             >
               {STATUS_LABELS[project.status] ?? project.status}
             </span>
-            <Link href={`/projects/${project.id}/edit`} className="btn btn-secondary text-sm">
-              Edit
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href={`/projects/${project.id}/edit`} className="btn btn-secondary text-sm">
+                Edit
+              </Link>
+              {(project.status === "ACTIVE" || project.status === "PLANNING") && (
+                <>
+                  <ProjectStatusButton
+                    action={updateProjectStatusAction}
+                    projectId={project.id}
+                    status="COMPLETED"
+                    label="Mark completed"
+                    className="btn btn-secondary text-sm"
+                  />
+                  <ProjectStatusButton
+                    action={updateProjectStatusAction}
+                    projectId={project.id}
+                    status="ON_HOLD"
+                    label="Put on hold"
+                    className="btn btn-secondary text-sm"
+                  />
+                  <ProjectStatusButton
+                    action={updateProjectStatusAction}
+                    projectId={project.id}
+                    status="CANCELLED"
+                    label="Cancel project"
+                    className="btn btn-danger text-sm"
+                  />
+                </>
+              )}
+              {project.status === "ON_HOLD" && (
+                <>
+                  <ProjectStatusButton
+                    action={updateProjectStatusAction}
+                    projectId={project.id}
+                    status="ACTIVE"
+                    label="Reactivate"
+                    className="btn btn-primary text-sm"
+                  />
+                  <ProjectStatusButton
+                    action={updateProjectStatusAction}
+                    projectId={project.id}
+                    status="COMPLETED"
+                    label="Mark completed"
+                    className="btn btn-secondary text-sm"
+                  />
+                  <ProjectStatusButton
+                    action={updateProjectStatusAction}
+                    projectId={project.id}
+                    status="CANCELLED"
+                    label="Cancel project"
+                    className="btn btn-danger text-sm"
+                  />
+                </>
+              )}
+              {(project.status === "COMPLETED" || project.status === "CANCELLED") && (
+                <ProjectStatusButton
+                  action={updateProjectStatusAction}
+                  projectId={project.id}
+                  status="ACTIVE"
+                  label="Reactivate"
+                  className="btn btn-primary text-sm"
+                />
+              )}
+            </div>
           </div>
           {(project.location || project.client) && (
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-600">
@@ -89,13 +241,40 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
+      {/* Status notice when not active */}
+      {project.status === "COMPLETED" && (
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <span className="font-semibold">This project is completed.</span>
+          <span className="text-emerald-700">No new expenses can be added. Use Edit to change status if needed.</span>
+        </div>
+      )}
+      {project.status === "ON_HOLD" && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span className="font-semibold">This project is on hold.</span>
+          <span className="text-amber-700">You can still add expenses. Use Edit to reactivate the project.</span>
+        </div>
+      )}
+      {project.status === "CANCELLED" && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <span className="font-semibold">This project is cancelled.</span>
+          <span className="text-red-700">No new expenses can be added. Use Edit to change status if needed.</span>
+        </div>
+      )}
+
       {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-500">Budget</p>
           <p className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(budgetNum)}
           </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Received</p>
+          <p className="mt-1 text-xl font-bold text-teal-700 sm:text-2xl">
+            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalReceived)}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">From receipts</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-500">Spent</p>
@@ -121,110 +300,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Expenses: grouped by date, then by expense id */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-800">Expenses</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              {project.expenses.length} record{project.expenses.length !== 1 ? "s" : ""}
-              {sortedDates.length > 0 && ` · ${sortedDates.length} date${sortedDates.length !== 1 ? "s" : ""}`}
-            </p>
-          </div>
-          <Link href={`/expenses/new?projectId=${project.id}`} className="btn btn-primary text-sm">
-            Add expense
-          </Link>
-        </div>
-        <div className="divide-y divide-slate-200">
-          {sortedDates.map((dateKey) => {
-            const dateExpenses = expensesByDate[dateKey];
-            const dateLabel = new Date(dateKey + "Z").toLocaleDateString(undefined, {
-              weekday: "short",
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            });
-            const dayTotal = dateExpenses.reduce((s, e) => s + Number(e.amount), 0);
-            return (
-              <details key={dateKey} className="group" open={sortedDates.length <= 3}>
-                <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 text-left font-medium text-slate-800 hover:bg-slate-50/50 [&::-webkit-details-marker]:hidden">
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-90"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                    {dateLabel}
-                  </span>
-                  <span className="text-sm font-semibold text-slate-600">
-                    {dateExpenses.length} expense{dateExpenses.length !== 1 ? "s" : ""} ·{" "}
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(dayTotal)}
-                  </span>
-                </summary>
-                <div className="border-t border-slate-100 bg-slate-50/30 px-5 pb-4 pt-1">
-                  {dateExpenses.map((e) => (
-                    <div key={e.id} className="mt-4 first:mt-0">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="font-medium text-slate-800">{e.title}</span>
-                        <span className="text-sm font-semibold text-slate-900">
-                          {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(e.amount))}
-                        </span>
-                      </div>
-                      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-slate-200 bg-slate-50/80">
-                              <th className="px-3 py-2 font-semibold text-slate-700">Material</th>
-                              <th className="px-3 py-2 font-semibold text-slate-700">Qty</th>
-                              <th className="px-3 py-2 font-semibold text-slate-700">Unit price</th>
-                              <th className="px-3 py-2 font-semibold text-slate-700">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {e.items.map((item) => {
-                              const qty = Number(item.quantity);
-                              const up = Number(item.unitPrice);
-                              const rowTotal = qty * up;
-                              return (
-                                <tr key={item.id} className="border-b border-slate-100 last:border-0">
-                                  <td className="px-3 py-2 text-slate-800">{item.materials}</td>
-                                  <td className="px-3 py-2 text-slate-600">{qty}</td>
-                                  <td className="px-3 py-2 text-slate-600">
-                                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(up)}
-                                  </td>
-                                  <td className="px-3 py-2 font-medium text-slate-900">
-                                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(rowTotal)}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            );
-          })}
-        </div>
-        {project.expenses.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-slate-500">No expenses for this project</p>
-            <Link
-              href={`/expenses/new?projectId=${project.id}`}
-              className="mt-3 text-sm font-medium text-teal-600 hover:text-teal-700"
-            >
-              Add expense
-            </Link>
-          </div>
-        )}
-      </div>
+      {/* Tabs: Installments | Receipts | Expenses */}
+      <ProjectDetailTabs
+        projectId={projectWithExpenseDocs.id}
+        projectName={projectWithExpenseDocs.name}
+        clientName={projectWithExpenseDocs.client?.name ?? null}
+        installments={projectWithExpenseDocs.installments as Parameters<typeof ProjectDetailTabs>[0]["installments"]}
+        deposits={projectWithExpenseDocs.deposits as Parameters<typeof ProjectDetailTabs>[0]["deposits"]}
+        expenses={projectWithExpenseDocs.expenses as Parameters<typeof ProjectDetailTabs>[0]["expenses"]}
+        documents={projectWithExpenseDocs.documents}
+        canAddExpense={canAddExpense}
+        tenantId={tenant.id}
+        tenantName={tenantName}
+        tenantLogoUrl={tenantLogoUrl}
+        tenantBusinessInfo={tenantBusinessInfo}
+      />
     </div>
   );
 }

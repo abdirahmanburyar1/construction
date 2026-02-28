@@ -48,7 +48,7 @@ export async function getTenantFromSession(): Promise<TenantSession | null> {
     where: { id: userId, tenantId, isActive: true, deletedAt: null },
     select: { id: true, email: true, role: true, tenantId: true },
   });
-  if (!user) return null;
+  if (!user || user.tenantId == null) return null;
   return {
     userId: user.id,
     tenantId: user.tenantId,

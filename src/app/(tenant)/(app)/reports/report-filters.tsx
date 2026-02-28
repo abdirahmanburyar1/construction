@@ -39,8 +39,9 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
     { value: "", label: "All clients" },
     ...clients.map((c) => ({ value: c.id, label: c.name })),
   ];
-  const projectsForClient = clientId
-    ? projects.filter((p) => p.clientId === clientId)
+  const clientIdTrimmed = (clientId ?? "").trim();
+  const projectsForClient = clientIdTrimmed
+    ? projects.filter((p) => (p.clientId ?? "").trim() === clientIdTrimmed)
     : projects;
   const projectOptions: SearchableSelectOption[] = [
     { value: "", label: "All projects" },
@@ -67,10 +68,11 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
 
   useEffect(() => {
     const selectedProject = projects.find((p) => p.id === projectId);
-    if (clientId && selectedProject && selectedProject.clientId !== clientId) {
+    const selectedBelongsToClient = selectedProject && (selectedProject.clientId ?? "").trim() === clientIdTrimmed;
+    if (clientIdTrimmed && selectedProject && !selectedBelongsToClient) {
       setProjectId("");
     }
-  }, [clientId, projectId, projects]);
+  }, [clientIdTrimmed, projectId, projects]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -156,6 +158,11 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
             className="w-full min-w-0"
             inputClassName="text-sm py-1.5 min-w-0"
           />
+          {clientIdTrimmed ? (
+            <p className="mt-0.5 text-xs text-slate-500">{projectsForClient.length} project(s) for this client</p>
+          ) : (
+            <p className="mt-0.5 text-xs text-slate-500">Select a client to see their projects</p>
+          )}
         </div>
         <div className="flex flex-col gap-1 w-[220px] shrink-0">
           <label htmlFor="report-category" className="text-xs font-medium text-slate-600">

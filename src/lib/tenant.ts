@@ -6,6 +6,7 @@ export type TenantContext = {
   name: string;
   status: string;
   subscriptionExpiryDate: Date | null;
+  faviconUrl: string | null;
 };
 
 export function getMainDomain(host: string): string {
@@ -34,6 +35,7 @@ export async function getTenantBySlug(slug: string): Promise<TenantContext | nul
       status: true,
       subscriptionExpiryAt: true,
       trialEndsAt: true,
+      faviconUrl: true,
     },
   });
   if (!tenant) return null;
@@ -44,6 +46,7 @@ export async function getTenantBySlug(slug: string): Promise<TenantContext | nul
     name: tenant.name,
     status: tenant.status,
     subscriptionExpiryDate,
+    faviconUrl: tenant.faviconUrl ?? null,
   };
 }
 

@@ -37,11 +37,17 @@ export default async function ReportsPage({
 }) {
   const tenant = await getTenantForRequest();
   const params = await searchParams;
-  const { from: fromParam, to: toParam, projectId: projectIdParam, clientId: clientIdParam, category: categoryParam, materialId: materialIdParam } = params;
+  const toStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+  const fromParam = toStr(params.from);
+  const toParam = toStr(params.to);
+  const projectIdParam = toStr(params.projectId);
+  const clientIdParam = toStr(params.clientId);
+  const categoryParam = toStr(params.category);
+  const materialIdParam = toStr(params.materialId);
 
   const [projects, clients, materialsRaw] = await Promise.all([
     prisma.project.findMany({
-      where: { tenantId: tenant.id },
+      where: { tenantId: tenant.id, deletedAt: null },
       orderBy: { name: "asc" },
       select: { id: true, name: true, clientId: true },
     }),
@@ -108,6 +114,7 @@ export default async function ReportsPage({
 
     const projectWhere = {
       tenantId: tenant.id,
+      deletedAt: null,
       ...(projectIdParam ? { id: projectIdParam } : {}),
       ...(clientIdParam ? { clientId: clientIdParam } : {}),
     };
@@ -396,14 +403,14 @@ export default async function ReportsPage({
                   </dl>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
+                  <table className="w-full text-left text-sm border border-slate-200 border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50/80">
-                        <th className="px-5 py-3 font-semibold text-slate-700 whitespace-nowrap">Date</th>
-                        <th className="px-5 py-3 font-semibold text-slate-700">Material</th>
-                        <th className="px-5 py-3 font-semibold text-slate-700 text-right">Qty</th>
-                        <th className="px-5 py-3 font-semibold text-slate-700 text-right">Unit price</th>
-                        <th className="px-5 py-3 font-semibold text-slate-700 text-right">Amount</th>
+                      <tr className="bg-slate-50/80">
+                        <th className="border border-slate-200 px-5 py-3 font-semibold text-slate-700 whitespace-nowrap">Date</th>
+                        <th className="border border-slate-200 px-5 py-3 font-semibold text-slate-700">Material</th>
+                        <th className="border border-slate-200 px-5 py-3 font-semibold text-slate-700 text-right">Qty</th>
+                        <th className="border border-slate-200 px-5 py-3 font-semibold text-slate-700 text-right">Unit price</th>
+                        <th className="border border-slate-200 px-5 py-3 font-semibold text-slate-700 text-right">Amount</th>
                       </tr>
                     </thead>
                     {(() => {
@@ -427,7 +434,7 @@ export default async function ReportsPage({
                         return (
                           <tbody key={dateKey} className="report-date-group">
                             <tr>
-                              <td colSpan={5} className="bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-800">
+                              <td colSpan={5} className="border border-slate-200 bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-800">
                                 {dateLabel}
                               </td>
                             </tr>
@@ -437,18 +444,18 @@ export default async function ReportsPage({
                                   e.items.forEach((item, idx) => {
                                     const lineTotal = Number(item.quantity) * Number(item.unitPrice);
                                     rows.push(
-                                      <tr key={`${e.id}-${idx}`} className="border-b border-slate-100">
-                                        <td className="px-5 py-2 text-slate-800 whitespace-nowrap">
-                                          {idx === 0 ? new Date(e.expenseDate).toLocaleDateString() : ""}
+                                      <tr key={`${e.id}-${idx}`}>
+                                        <td className="border border-slate-200 px-5 py-2 text-slate-800 whitespace-nowrap">
+                                          {" "}
                                         </td>
-                                        <td className="px-5 py-2 text-slate-700">{item.materials}</td>
-                                        <td className="px-5 py-2 text-right text-slate-700">
+                                        <td className="border border-slate-200 px-5 py-2 text-slate-700">{item.materials}</td>
+                                        <td className="border border-slate-200 px-5 py-2 text-right text-slate-700">
                                           {Number(item.quantity)}
                                         </td>
-                                        <td className="px-5 py-2 text-right text-slate-700 whitespace-nowrap">
+                                        <td className="border border-slate-200 px-5 py-2 text-right text-slate-700 whitespace-nowrap">
                                           {fmt.format(Number(item.unitPrice))}
                                         </td>
-                                        <td className="px-5 py-2 text-right font-medium text-slate-900 whitespace-nowrap">
+                                        <td className="border border-slate-200 px-5 py-2 text-right font-medium text-slate-900 whitespace-nowrap">
                                           {fmt.format(lineTotal)}
                                         </td>
                                       </tr>
@@ -456,14 +463,14 @@ export default async function ReportsPage({
                                   }                                  );
                                 } else {
                                   rows.push(
-                                    <tr key={e.id} className="report-expense-block border-b border-slate-200">
-                                      <td className="px-5 py-2 text-slate-800 whitespace-nowrap">
-                                        {new Date(e.expenseDate).toLocaleDateString()}
+                                    <tr key={e.id} className="report-expense-block">
+                                      <td className="border border-slate-200 px-5 py-2 text-slate-800 whitespace-nowrap">
+                                        {" "}
                                       </td>
-                                      <td className="px-5 py-2 text-slate-500">—</td>
-                                      <td className="px-5 py-2 text-right text-slate-500">—</td>
-                                      <td className="px-5 py-2 text-right text-slate-500">—</td>
-                                      <td className="px-5 py-2 text-right font-medium text-slate-900 whitespace-nowrap">
+                                      <td className="border border-slate-200 px-5 py-2 text-slate-500">—</td>
+                                      <td className="border border-slate-200 px-5 py-2 text-right text-slate-500">—</td>
+                                      <td className="border border-slate-200 px-5 py-2 text-right text-slate-500">—</td>
+                                      <td className="border border-slate-200 px-5 py-2 text-right font-medium text-slate-900 whitespace-nowrap">
                                         {fmt.format(Number(e.amount))}
                                       </td>
                                     </tr>
@@ -477,11 +484,11 @@ export default async function ReportsPage({
                     })()}
                     {project.expenses.length > 0 && (
                       <tfoot>
-                        <tr className="border-t-2 border-slate-200 bg-slate-50/80">
-                          <td colSpan={4} className="px-5 py-3 text-sm font-semibold text-slate-800">
+                        <tr className="bg-slate-50/80">
+                          <td colSpan={4} className="border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800">
                             Total
                           </td>
-                          <td className="px-5 py-3 text-right text-sm font-semibold text-slate-900 whitespace-nowrap">
+                          <td className="border border-slate-200 px-5 py-3 text-right text-sm font-semibold text-slate-900 whitespace-nowrap">
                             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
                               project.expenses.reduce((sum, e) => sum + Number(e.amount), 0)
                             )}

@@ -2,10 +2,35 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSubdomain } from "@/lib/tenant";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const host = request.headers.get("host") ?? request.headers.get("x-forwarded-host") ?? "";
   const slug = getSubdomain(host);
+
+  // Skip tenant check for API that performs the check (avoid loop) and for contact page
+  const isTenantCheckApi = pathname.startsWith("/api/tenant-exists");
+  const isContactPage = pathname === "/contact";
+  if (isTenantCheckApi || isContactPage) {
+    return NextResponse.next();
+  }
+
+  // When on a subdomain (*.dhisme.so), verify tenant exists in DB before allowing access
+  if (slug) {
+    const origin = request.nextUrl.origin;
+    const checkUrl = `${origin}/api/tenant-exists?slug=${encodeURIComponent(slug)}`;
+    try {
+      const check = await fetch(checkUrl, {
+        headers: { "x-middleware-request": "1" },
+        cache: "no-store",
+      });
+      if (!check.ok) {
+        // Redirect to contact page on the same host (e.g. invalid.dhisme.so/contact)
+        return NextResponse.redirect(new URL("/contact", request.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL("/contact", request.url));
+    }
+  }
 
   if (pathname.startsWith("/admin")) {
     const newPath = pathname === "/admin" || pathname === "/admin/"

@@ -26,8 +26,11 @@ export function getSubdomain(host: string): string | null {
 }
 
 export async function getTenantBySlug(slug: string): Promise<TenantContext | null> {
-  const tenant = await prisma.tenant.findUnique({
-    where: { subdomain: slug, deletedAt: null },
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      deletedAt: null,
+      subdomain: { equals: slug, mode: "insensitive" },
+    },
     select: {
       id: true,
       subdomain: true,

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { TenantNotFoundError } from "@/lib/tenant-context";
 import { AccessDeniedContact } from "./access-denied-contact";
 
 export default function TenantError({
@@ -15,7 +14,7 @@ export default function TenantError({
     console.error(error);
   }, [error]);
 
-  if (error instanceof TenantNotFoundError) {
+  if (error.name === "TenantNotFoundError") {
     return <AccessDeniedContact />;
   }
 

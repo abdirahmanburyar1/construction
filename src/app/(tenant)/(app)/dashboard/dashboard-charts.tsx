@@ -54,7 +54,7 @@ export function ExpensesByMonthChart({ data }: { data: ExpensesByMonth }) {
           <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="#64748b" />
           <YAxis tickFormatter={(v) => `$${v}`} tick={{ fontSize: 12 }} stroke="#64748b" width={48} />
           <Tooltip
-            formatter={(value: number) => [formatCurrency(value), "Spent"]}
+            formatter={(value: number | undefined) => [value != null ? formatCurrency(value) : "", "Spent"]}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.label ?? ""}
             contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
           />
@@ -86,7 +86,7 @@ export function ExpensesByCategoryChart({ data }: { data: ExpensesByCategory }) 
             innerRadius={60}
             outerRadius={90}
             paddingAngle={2}
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
             labelLine={false}
           >
             {data.map((_, index) => (
@@ -94,7 +94,7 @@ export function ExpensesByCategoryChart({ data }: { data: ExpensesByCategory }) 
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value: number | undefined) => (value != null ? formatCurrency(value) : "")}
             contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
           />
           <Legend formatter={(value) => value.replace("_", " ")} />
@@ -125,7 +125,7 @@ export function SpentVsReceivedChart({ data }: { data: SpentVsReceived }) {
           <XAxis type="number" tickFormatter={(v) => `$${v}`} tick={{ fontSize: 12 }} stroke="#64748b" />
           <YAxis type="category" dataKey="name" width={72} tick={{ fontSize: 12 }} stroke="#64748b" />
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value: number | undefined) => (value != null ? formatCurrency(value) : "")}
             contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
           />
           <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={48} />

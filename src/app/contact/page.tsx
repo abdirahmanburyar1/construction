@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+const CONTACT_NAME = "Abdirahman Buryar";
 const CONTACT_PHONE = "+252907700949";
 
 export default function ContactPage() {
@@ -13,9 +14,11 @@ export default function ContactPage() {
           There is no tenant registered for this subdomain. If you need access or want to set up your company on the platform, please contact us.
         </p>
         <div className="mt-6">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Contact</p>
+          <p className="mt-1 font-semibold text-slate-900">{CONTACT_NAME}</p>
           <a
             href={`tel:${CONTACT_PHONE.replace(/\s/g, "")}`}
-            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-3 text-base font-medium text-white transition-colors hover:bg-teal-700"
+            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-3 text-base font-medium text-white transition-colors hover:bg-teal-700"
           >
             <span aria-hidden>📞</span>
             {CONTACT_PHONE}
@@ -25,7 +28,7 @@ export default function ContactPage() {
           Call or WhatsApp to get started
         </p>
         <Link
-          href="/"
+          href="https://dhisme.so"
           className="mt-6 inline-block text-sm font-medium text-teal-600 hover:text-teal-700"
         >
           ← Back to dhisme.so

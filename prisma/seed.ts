@@ -4,12 +4,10 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@platform.com";
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@platform.com").trim().toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD || "changeme";
-  const demoUserEmail = process.env.DEMO_USER_EMAIL || "demo@example.com";
-  const demoUserPassword = process.env.DEMO_USER_PASSWORD || "changeme";
 
-  // Platform admin
+  // Platform admin (Admin table – legacy)
   let admin = await prisma.admin.findUnique({ where: { email: adminEmail } });
   if (!admin) {
     admin = await prisma.admin.create({
@@ -21,6 +19,26 @@ async function main() {
     console.log("Admin created:", adminEmail);
   } else {
     console.log("Admin already exists:", adminEmail);
+  }
+
+  // Platform user (User with tenantId null – not under any tenant)
+  const platformUserHash = await bcrypt.hash(adminPassword.trim(), 12);
+  let platformUser = await prisma.user.findFirst({
+    where: { email: adminEmail, tenantId: null },
+  });
+  if (!platformUser) {
+    platformUser = await prisma.user.create({
+      data: {
+        name: "Platform Admin",
+        email: adminEmail,
+        password: platformUserHash,
+        role: "SUPER_ADMIN",
+        tenantId: null,
+      },
+    });
+    console.log("Platform user created (tenantId=null):", adminEmail);
+  } else {
+    console.log("Platform user already exists (tenantId=null):", adminEmail);
   }
 
   // Default plan

@@ -216,8 +216,8 @@ model User {
   email     String
   password  String
   role      Role
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId  String?  // null = platform user (SUPER_ADMIN), set = tenant user
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   isActive  Boolean  @default(true)
   deletedAt DateTime?
   createdAt DateTime @default(now())

@@ -21,10 +21,13 @@
     "@imagekit/next": "^2.1.5",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "next": "14.2.18",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sweetalert2": "^11.26.20",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

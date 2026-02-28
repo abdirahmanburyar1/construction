@@ -119,4 +119,16 @@ body {
     page-break-inside: avoid;
     border: 1px solid #e2e8f0;
   }
+
+  /* Financial report: keep date groups and expense blocks together when printing */
+  #report-content .report-date-group {
+    page-break-inside: avoid;
+  }
+  #report-content .report-expense-block {
+    page-break-inside: avoid;
+  }
+  #report-content .report-project-section {
+    page-break-before: auto;
+    page-break-inside: avoid;
+  }
 }

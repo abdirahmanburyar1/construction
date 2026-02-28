@@ -265,6 +265,7 @@ model Project {
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, startDate])
+  @@index([tenantId, clientId])
   @@index([clientId])
   @@index([tenantId, name])
 }
@@ -431,6 +432,7 @@ model ExpenseItem {
   updatedAt  DateTime @updatedAt
 
   @@index([expenseId])
+  @@index([expenseId, materials])
 }
 
 model Client {
@@ -449,6 +451,7 @@ model Client {
 
   @@index([tenantId])
   @@index([tenantId, name])
+  @@index([tenantId, deletedAt])
 }
 
 enum InvoiceStatus {

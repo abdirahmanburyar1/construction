@@ -14,17 +14,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // When on a subdomain (*.dhisme.so), verify tenant exists in DB before allowing access
+  // When on a subdomain (*.dhisme.so), verify tenant exists before allowing access
   if (slug) {
-    const origin = request.nextUrl.origin;
-    const checkUrl = `${origin}/api/tenant-exists?slug=${encodeURIComponent(slug)}`;
+    const host = request.headers.get("host") ?? "";
+    const protocol = request.nextUrl.protocol;
+    const checkUrl = `${protocol}//${host}/api/tenant-exists?slug=${encodeURIComponent(slug)}`;
     try {
       const check = await fetch(checkUrl, {
         headers: { "x-middleware-request": "1" },
         cache: "no-store",
       });
       if (!check.ok) {
-        // Redirect to contact page on the same host (e.g. invalid.dhisme.so/contact)
         return NextResponse.redirect(new URL("/contact", request.url));
       }
     } catch {

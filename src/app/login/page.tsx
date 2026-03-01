@@ -1,9 +1,24 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getTenantForRequest } from "@/lib/tenant-context";
 import { getTenantFromSession } from "@/lib/auth";
+import { getSubdomain, getTenantBySlug } from "@/lib/tenant";
 import { TenantLoginForm } from "./tenant-login-form";
 
 export default async function LoginPage() {
+  const h = await headers();
+  const host = h.get("host") ?? h.get("x-forwarded-host") ?? "";
+  const slugFromHeader = h.get("x-tenant-slug") ?? null;
+  const slugFromHost = getSubdomain(host);
+  const slug = slugFromHeader ?? slugFromHost;
+
+  if (slug) {
+    const tenantExists = await getTenantBySlug(slug);
+    if (!tenantExists) {
+      redirect("/contact");
+    }
+  }
+
   const tenant = await getTenantForRequest();
   const session = await getTenantFromSession();
   

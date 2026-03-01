@@ -113,7 +113,7 @@ export function ReportFilters({ basePath = "/reports", projects, clients, catego
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1 w-[140px] shrink-0">
           <label htmlFor="report-from" className="text-xs font-medium text-slate-600">
-            From (month)
+            From (month year)
           </label>
           <input
             id="report-from"
@@ -125,7 +125,7 @@ export function ReportFilters({ basePath = "/reports", projects, clients, catego
         </div>
         <div className="flex flex-col gap-1 w-[140px] shrink-0">
           <label htmlFor="report-to" className="text-xs font-medium text-slate-600">
-            To (month)
+            To (month year)
           </label>
           <input
             id="report-to"

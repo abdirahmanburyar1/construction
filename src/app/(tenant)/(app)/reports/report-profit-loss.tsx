@@ -45,7 +45,7 @@ export function ReportProfitLoss({
               </td>
             </tr>
             <tr>
-              <td className="py-1.5 pl-4 text-slate-700">Deposits received</td>
+              <td className="py-1.5 pl-4 text-slate-700">Received</td>
               <td className="py-1.5 text-right font-medium text-slate-900 tabular-nums">{fmt(data.income)}</td>
             </tr>
             <tr>

@@ -53,7 +53,15 @@ export default async function BalanceSheetReportPage({
   const monthRange = parseMonthRange(fromParam, toParam);
   const shouldFetchReport = monthRange !== null;
 
-  let balanceSheetData: { totalBudget: number; totalReceived: number; totalExpenses: number; receivables: number; netPosition: number } | null = null;
+  let balanceSheetData: {
+    totalBudget: number;
+    totalReceived: number;
+    totalExpenses: number;
+    receivables: number;
+    netPosition: number;
+    fixedAssetsTotal: number;
+    currentAssetsTotal: number;
+  } | null = null;
   let generatedAt = "";
   let asAtLabel = "";
 
@@ -98,12 +106,27 @@ export default async function BalanceSheetReportPage({
 
     const totalReceived = Number(receivedAgg._sum.amount ?? 0);
     const totalExpenses = Number(expensesAgg._sum.amount ?? 0);
+
+    const assets = await prisma.asset.findMany({
+      where: { tenantId: tenant.id },
+      select: { category: true, cost: true },
+    });
+    let fixedAssetsTotal = 0;
+    let currentAssetsTotal = 0;
+    for (const a of assets) {
+      const cost = Number(a.cost);
+      if (a.category === "FIXED") fixedAssetsTotal += cost;
+      else if (a.category === "CURRENT") currentAssetsTotal += cost;
+    }
+
     balanceSheetData = {
       totalBudget,
       totalReceived,
       totalExpenses,
       receivables: Math.max(0, totalBudget - totalReceived),
       netPosition: totalBudget - totalExpenses,
+      fixedAssetsTotal,
+      currentAssetsTotal,
     };
     generatedAt = new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" });
     asAtLabel = new Date(monthRange.end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });

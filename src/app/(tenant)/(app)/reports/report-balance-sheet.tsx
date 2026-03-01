@@ -6,6 +6,9 @@ export type BalanceSheetData = {
   totalExpenses: number;
   receivables: number;
   netPosition: number;
+  /** Sum of asset costs by category (from Asset model) */
+  fixedAssetsTotal: number;
+  currentAssetsTotal: number;
 };
 
 function fmt(n: number) {
@@ -45,10 +48,31 @@ export function ReportBalanceSheet({
               <td className="py-1.5 pl-4 text-slate-700">Receivables (contract value not yet received)</td>
               <td className="py-1.5 text-right font-medium text-slate-900 tabular-nums">{fmt(data.receivables)}</td>
             </tr>
+            {(data.fixedAssetsTotal > 0 || data.currentAssetsTotal > 0) && (
+              <>
+                {data.fixedAssetsTotal > 0 && (
+                  <tr>
+                    <td className="py-1.5 pl-4 text-slate-700">Fixed assets</td>
+                    <td className="py-1.5 text-right font-medium text-slate-900 tabular-nums">{fmt(data.fixedAssetsTotal)}</td>
+                  </tr>
+                )}
+                {data.currentAssetsTotal > 0 && (
+                  <tr>
+                    <td className="py-1.5 pl-4 text-slate-700">Current assets</td>
+                    <td className="py-1.5 text-right font-medium text-slate-900 tabular-nums">{fmt(data.currentAssetsTotal)}</td>
+                  </tr>
+                )}
+              </>
+            )}
             <tr>
               <td className="py-2 pl-4 font-semibold text-slate-800">Total Assets</td>
               <td className="py-2 text-right font-semibold text-slate-900 tabular-nums border-b border-slate-200">
-                {fmt(data.totalReceived + data.receivables)}
+                {fmt(
+                  data.totalReceived +
+                    data.receivables +
+                    data.fixedAssetsTotal +
+                    data.currentAssetsTotal
+                )}
               </td>
             </tr>
 

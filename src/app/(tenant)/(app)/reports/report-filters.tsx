@@ -18,22 +18,25 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
 
   const fromParam = searchParams.get("from") ?? "";
   const toParam = searchParams.get("to") ?? "";
+  const reportTypeParam = searchParams.get("report") ?? "financial";
   const projectIdParam = searchParams.get("projectId") ?? "";
   const clientIdParam = searchParams.get("clientId") ?? "";
   const categoryParam = searchParams.get("category") ?? "";
   const materialIdParam = searchParams.get("materialId") ?? "";
 
+  const [reportType, setReportType] = useState(reportTypeParam);
   const [projectId, setProjectId] = useState(projectIdParam);
   const [clientId, setClientId] = useState(clientIdParam);
   const [category, setCategory] = useState(categoryParam);
   const [materialId, setMaterialId] = useState(materialIdParam);
 
   useEffect(() => {
+    setReportType(reportTypeParam);
     setProjectId(projectIdParam);
     setClientId(clientIdParam);
     setCategory(categoryParam);
     setMaterialId(materialIdParam);
-  }, [projectIdParam, clientIdParam, categoryParam, materialIdParam]);
+  }, [reportTypeParam, projectIdParam, clientIdParam, categoryParam, materialIdParam]);
 
   const clientOptions: SearchableSelectOption[] = [
     { value: "", label: "All clients" },
@@ -82,6 +85,7 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
     const toVal = (fd.get("to") as string)?.trim() || null;
 
     const params = new URLSearchParams();
+    if (reportType && reportType !== "financial") params.set("report", reportType);
     if (fromVal) params.set("from", fromVal);
     if (toVal) params.set("to", toVal);
     if (projectId) params.set("projectId", projectId);
@@ -104,9 +108,29 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
     });
   }
 
+  const reportTypeOptions: SearchableSelectOption[] = [
+    { value: "financial", label: "Financial (expenses by project)" },
+    { value: "pnl", label: "Profit & Loss" },
+    { value: "balance-sheet", label: "Balance Sheet" },
+  ];
+
   return (
     <form onSubmit={handleSubmit} className="print:hidden">
       <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1 w-[240px] shrink-0">
+          <label htmlFor="report-type" className="text-xs font-medium text-slate-600">
+            Report
+          </label>
+          <SearchableSelect
+            name="report"
+            value={reportType}
+            onChange={setReportType}
+            options={reportTypeOptions}
+            placeholder="Report type..."
+            className="w-full min-w-0"
+            inputClassName="text-sm py-1.5 min-w-0"
+          />
+        </div>
         <div className="flex flex-col gap-1 w-[140px] shrink-0">
           <label htmlFor="report-from" className="text-xs font-medium text-slate-600">
             From (month)

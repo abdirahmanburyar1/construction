@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { ReportPrintButton } from "./report-print-button";
 import { ReportFilters } from "./report-filters";
 import { ReportExportButtons, type ReportProjectExport } from "./report-export-buttons";
+import { ReportProfitLoss } from "./report-profit-loss";
+import { ReportBalanceSheet } from "./report-balance-sheet";
 
 const CATEGORY_LABELS: Record<string, string> = {
   MATERIAL: "Materials",
@@ -29,6 +31,7 @@ export default async function ReportsPage({
   searchParams: Promise<{
     from?: string;
     to?: string;
+    report?: string;
     projectId?: string;
     clientId?: string;
     category?: string;
@@ -40,6 +43,7 @@ export default async function ReportsPage({
   const toStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const fromParam = toStr(params.from);
   const toParam = toStr(params.to);
+  const reportType = toStr(params.report) || "financial";
   const projectIdParam = toStr(params.projectId);
   const clientIdParam = toStr(params.clientId);
   const categoryParam = toStr(params.category);
@@ -101,6 +105,8 @@ export default async function ReportsPage({
   };
   let reportProjects: ProjectWithExpenses[] = [];
   let generatedAt = "";
+  let pnlData: { income: number; expensesByCategory: { category: string; amount: number }[]; totalExpenses: number; netProfit: number } | null = null;
+  let balanceSheetData: { totalBudget: number; totalReceived: number; totalExpenses: number; receivables: number; netPosition: number } | null = null;
 
   if (shouldFetchReport && monthRange) {
     const materialName =
@@ -234,6 +240,59 @@ export default async function ReportsPage({
     }));
 
     generatedAt = new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" });
+
+    if (reportType === "pnl") {
+      const income = depositsForProjects.reduce((sum, d) => sum + Number(d.amount), 0);
+      const byCategory = new Map<string, number>();
+      for (const e of expensesForProjects) {
+        const amt = Number(e.amount);
+        byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + amt);
+      }
+      const totalExpenses = expensesForProjects.reduce((sum, e) => sum + Number(e.amount), 0);
+      const order: string[] = ["MATERIAL", "LABOR", "EQUIPMENT", "SUBCONTRACT", "OTHER"];
+      const expensesByCategory = order
+        .filter((c) => byCategory.has(c))
+        .map((category) => ({ category, amount: byCategory.get(category)! }));
+      pnlData = {
+        income,
+        expensesByCategory,
+        totalExpenses,
+        netProfit: income - totalExpenses,
+      };
+    }
+
+    if (reportType === "balance-sheet") {
+      const totalBudget = projectsMatchingFilters.reduce((sum, p) => sum + Number(p.budget), 0);
+      const [receivedAgg, expensesUpToAgg] = await Promise.all([
+        prisma.projectDeposit.aggregate({
+          where: {
+            projectId: { in: projectIds },
+            tenantId: tenant.id,
+            paidAt: { lte: monthRange.end },
+          },
+          _sum: { amount: true },
+        }),
+        prisma.expense.aggregate({
+          where: {
+            tenantId: tenant.id,
+            deletedAt: null,
+            projectId: { in: projectIds },
+            expenseDate: { lte: monthRange.end },
+            project: { deletedAt: null },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+      const totalReceived = Number(receivedAgg._sum.amount ?? 0);
+      const totalExpenses = Number(expensesUpToAgg._sum.amount ?? 0);
+      balanceSheetData = {
+        totalBudget,
+        totalReceived,
+        totalExpenses,
+        receivables: Math.max(0, totalBudget - totalReceived),
+        netPosition: totalBudget - totalExpenses,
+      };
+    }
   }
 
   const fromLabel = fromParam ? new Date(fromParam + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "";
@@ -285,7 +344,7 @@ export default async function ReportsPage({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:flex-row print:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 print:text-xl">
-              Financial Report
+              {reportType === "pnl" ? "Profit & Loss" : reportType === "balance-sheet" ? "Balance Sheet" : "Financial Report"}
             </h1>
             {shouldFetchReport ? (
               <>

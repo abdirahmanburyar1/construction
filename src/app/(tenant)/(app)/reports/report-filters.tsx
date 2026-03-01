@@ -13,9 +13,11 @@ type ReportFiltersProps = {
   materials: { id: string; name: string; category: string | null }[];
   /** Hide category and material filters (e.g. for P&L and Balance Sheet). */
   showCategoryMaterial?: boolean;
+  /** When true, hide Client and Project filters (e.g. Balance Sheet uses only date range). */
+  showClientProject?: boolean;
 };
 
-export function ReportFilters({ basePath = "/reports", projects, clients, categories, materials, showCategoryMaterial = true }: ReportFiltersProps) {
+export function ReportFilters({ basePath = "/reports", projects, clients, categories, materials, showCategoryMaterial = true, showClientProject = true }: ReportFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -88,8 +90,10 @@ export function ReportFilters({ basePath = "/reports", projects, clients, catego
     const params = new URLSearchParams();
     if (fromVal) params.set("from", fromVal);
     if (toVal) params.set("to", toVal);
-    if (projectId) params.set("projectId", projectId);
-    if (clientId) params.set("clientId", clientId);
+    if (showClientProject) {
+      if (projectId) params.set("projectId", projectId);
+      if (clientId) params.set("clientId", clientId);
+    }
     if (category) params.set("category", category);
     if (materialId) params.set("materialId", materialId);
 
@@ -135,39 +139,43 @@ export function ReportFilters({ basePath = "/reports", projects, clients, catego
             className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm w-full"
           />
         </div>
-        <div className="flex flex-col gap-1 w-[220px] shrink-0">
-          <label htmlFor="report-client" className="text-xs font-medium text-slate-600">
-            Client
-          </label>
-          <SearchableSelect
-            name="clientId"
-            value={clientId}
-            onChange={setClientId}
-            options={clientOptions}
-            placeholder="Search clients..."
-            className="w-full min-w-0"
-            inputClassName="text-sm py-1.5 min-w-0"
-          />
-        </div>
-        <div className="flex flex-col gap-1 w-[220px] shrink-0">
-          <label htmlFor="report-project" className="text-xs font-medium text-slate-600">
-            Project
-          </label>
-          <SearchableSelect
-            name="projectId"
-            value={projectId}
-            onChange={setProjectId}
-            options={projectOptions}
-            placeholder="Search projects..."
-            className="w-full min-w-0"
-            inputClassName="text-sm py-1.5 min-w-0"
-          />
-          {clientIdTrimmed ? (
-            <p className="mt-0.5 text-xs text-slate-500">{projectsForClient.length} project(s) for this client</p>
-          ) : (
-            <p className="mt-0.5 text-xs text-slate-500">Select a client to see their projects</p>
-          )}
-        </div>
+        {showClientProject && (
+          <>
+            <div className="flex flex-col gap-1 w-[220px] shrink-0">
+              <label htmlFor="report-client" className="text-xs font-medium text-slate-600">
+                Client
+              </label>
+              <SearchableSelect
+                name="clientId"
+                value={clientId}
+                onChange={setClientId}
+                options={clientOptions}
+                placeholder="Search clients..."
+                className="w-full min-w-0"
+                inputClassName="text-sm py-1.5 min-w-0"
+              />
+            </div>
+            <div className="flex flex-col gap-1 w-[220px] shrink-0">
+              <label htmlFor="report-project" className="text-xs font-medium text-slate-600">
+                Project
+              </label>
+              <SearchableSelect
+                name="projectId"
+                value={projectId}
+                onChange={setProjectId}
+                options={projectOptions}
+                placeholder="Search projects..."
+                className="w-full min-w-0"
+                inputClassName="text-sm py-1.5 min-w-0"
+              />
+              {clientIdTrimmed ? (
+                <p className="mt-0.5 text-xs text-slate-500">{projectsForClient.length} project(s) for this client</p>
+              ) : (
+                <p className="mt-0.5 text-xs text-slate-500">Select a client to see their projects</p>
+              )}
+            </div>
+          </>
+        )}
         {showCategoryMaterial && (
           <>
             <div className="flex flex-col gap-1 w-[220px] shrink-0">

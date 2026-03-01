@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ReportFilters } from "../report-filters";
 import { ReportPrintButton } from "../report-print-button";
 import { ReportBalanceSheet } from "../report-balance-sheet";
+import { BalanceSheetExportButtons } from "../balance-sheet-export-buttons";
 
 /**
  * Parse from/to from frontend (input type="month" sends YYYY-MM). No hardcoded dates — only these params.
@@ -24,36 +25,23 @@ function parseMonthRange(fromParam: string, toParam: string): { start: Date; end
 export default async function BalanceSheetReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; projectId?: string; clientId?: string }>;
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const tenant = await getTenantForRequest();
   const params = await searchParams;
   const toStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const fromParam = toStr(params.from);
   const toParam = toStr(params.to);
-  const projectIdParam = toStr(params.projectId);
-  const clientIdParam = toStr(params.clientId);
 
-  const [projects, clients] = await Promise.all([
-    prisma.project.findMany({
-      where: { tenantId: tenant.id, deletedAt: null },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, clientId: true },
-    }),
-    prisma.client.findMany({
-      where: { tenantId: tenant.id, deletedAt: null },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
+  const [tenantBranding] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      select: { name: true, logoUrl: true, businessInfo: true },
     }),
   ]);
-
-  const materials = await prisma.materialCatalog.findMany({
-    where: { tenantId: tenant.id },
-    orderBy: [{ category: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, category: true },
-  });
-  const categories = Array.from(new Set(materials.map((m) => m.category).filter(Boolean))) as string[];
-  categories.sort();
+  const tenantName = tenantBranding?.name ?? tenant.name;
+  const tenantLogoUrl = tenantBranding?.logoUrl ?? null;
+  const tenantBusinessInfo = tenantBranding?.businessInfo ?? null;
 
   const monthRange = parseMonthRange(fromParam, toParam);
   const shouldFetchReport = monthRange !== null;
@@ -71,14 +59,8 @@ export default async function BalanceSheetReportPage({
   let asAtLabel = "";
 
   if (shouldFetchReport && monthRange) {
-    const projectWhere = {
-      tenantId: tenant.id,
-      deletedAt: null,
-      ...(projectIdParam ? { id: projectIdParam } : {}),
-      ...(clientIdParam ? { clientId: clientIdParam } : {}),
-    };
     const projectsMatching = await prisma.project.findMany({
-      where: projectWhere,
+      where: { tenantId: tenant.id, deletedAt: null },
       select: { id: true, budget: true },
     });
     const projectIds = projectsMatching.map((p) => p.id);
@@ -149,21 +131,34 @@ export default async function BalanceSheetReportPage({
               <p className="mt-1 text-sm text-slate-500">Set date range and click Generate report.</p>
             )}
           </div>
-          <div className="flex items-center gap-2 print:hidden">
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
             <Link href="/reports" className="text-sm font-medium text-slate-600 hover:text-slate-900">
               ← Reports
             </Link>
-            {shouldFetchReport && <ReportPrintButton />}
+            {shouldFetchReport && (
+              <>
+                <ReportPrintButton />
+                <BalanceSheetExportButtons
+                  data={balanceSheetData!}
+                  asAtLabel={asAtLabel}
+                  generatedAt={generatedAt}
+                  tenantName={tenantName}
+                  tenantLogoUrl={tenantLogoUrl}
+                  tenantBusinessInfo={tenantBusinessInfo}
+                />
+              </>
+            )}
           </div>
         </div>
         <div className="print:hidden">
           <ReportFilters
             basePath="/reports/balance-sheet"
-            projects={projects}
-            clients={clients}
-            categories={categories}
-            materials={materials.map((m) => ({ id: m.id, name: m.name, category: m.category }))}
+            projects={[]}
+            clients={[]}
+            categories={[]}
+            materials={[]}
             showCategoryMaterial={false}
+            showClientProject={false}
           />
         </div>
       </div>
@@ -176,7 +171,14 @@ export default async function BalanceSheetReportPage({
       )}
 
       {shouldFetchReport && balanceSheetData && (
-        <ReportBalanceSheet data={balanceSheetData} asAtLabel={asAtLabel} generatedAt={generatedAt} />
+        <ReportBalanceSheet
+          data={balanceSheetData}
+          asAtLabel={asAtLabel}
+          generatedAt={generatedAt}
+          tenantName={tenantName}
+          tenantLogoUrl={tenantLogoUrl}
+          tenantBusinessInfo={tenantBusinessInfo}
+        />
       )}
     </div>
   );

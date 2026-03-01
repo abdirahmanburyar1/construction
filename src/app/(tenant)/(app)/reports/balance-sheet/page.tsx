@@ -6,10 +6,15 @@ import { ReportFilters } from "../report-filters";
 import { ReportPrintButton } from "../report-print-button";
 import { ReportBalanceSheet } from "../report-balance-sheet";
 
+/**
+ * Parse from/to from frontend (input type="month" sends YYYY-MM). No hardcoded dates — only these params.
+ */
 function parseMonthRange(fromParam: string, toParam: string): { start: Date; end: Date } | null {
-  if (!fromParam || !toParam) return null;
-  const [fromY, fromM] = fromParam.split("-").map(Number);
-  const [toY, toM] = toParam.split("-").map(Number);
+  const from = (fromParam ?? "").trim();
+  const to = (toParam ?? "").trim();
+  if (!from || !to) return null;
+  const [fromY, fromM] = from.split("-").map(Number);
+  const [toY, toM] = to.split("-").map(Number);
   if (!fromY || !fromM || !toY || !toM) return null;
   const start = new Date(fromY, fromM - 1, 1, 0, 0, 0, 0);
   const end = new Date(toY, toM, 0, 23, 59, 59, 999);

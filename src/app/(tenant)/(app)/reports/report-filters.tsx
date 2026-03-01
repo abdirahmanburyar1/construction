@@ -5,38 +5,39 @@ import { useTransition, useState, useEffect } from "react";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/SearchableSelect";
 
 type ReportFiltersProps = {
+  /** Base path for form submit (e.g. /reports/financial). Default /reports. */
+  basePath?: string;
   projects: { id: string; name: string; clientId: string | null }[];
   clients: { id: string; name: string }[];
   categories: string[];
   materials: { id: string; name: string; category: string | null }[];
+  /** Hide category and material filters (e.g. for P&L and Balance Sheet). */
+  showCategoryMaterial?: boolean;
 };
 
-export function ReportFilters({ projects, clients, categories, materials }: ReportFiltersProps) {
+export function ReportFilters({ basePath = "/reports", projects, clients, categories, materials, showCategoryMaterial = true }: ReportFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
   const fromParam = searchParams.get("from") ?? "";
   const toParam = searchParams.get("to") ?? "";
-  const reportTypeParam = searchParams.get("report") ?? "financial";
   const projectIdParam = searchParams.get("projectId") ?? "";
   const clientIdParam = searchParams.get("clientId") ?? "";
   const categoryParam = searchParams.get("category") ?? "";
   const materialIdParam = searchParams.get("materialId") ?? "";
 
-  const [reportType, setReportType] = useState(reportTypeParam);
   const [projectId, setProjectId] = useState(projectIdParam);
   const [clientId, setClientId] = useState(clientIdParam);
   const [category, setCategory] = useState(categoryParam);
   const [materialId, setMaterialId] = useState(materialIdParam);
 
   useEffect(() => {
-    setReportType(reportTypeParam);
     setProjectId(projectIdParam);
     setClientId(clientIdParam);
     setCategory(categoryParam);
     setMaterialId(materialIdParam);
-  }, [reportTypeParam, projectIdParam, clientIdParam, categoryParam, materialIdParam]);
+  }, [projectIdParam, clientIdParam, categoryParam, materialIdParam]);
 
   const clientOptions: SearchableSelectOption[] = [
     { value: "", label: "All clients" },
@@ -85,7 +86,6 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
     const toVal = (fd.get("to") as string)?.trim() || null;
 
     const params = new URLSearchParams();
-    if (reportType && reportType !== "financial") params.set("report", reportType);
     if (fromVal) params.set("from", fromVal);
     if (toVal) params.set("to", toVal);
     if (projectId) params.set("projectId", projectId);
@@ -94,7 +94,7 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
     if (materialId) params.set("materialId", materialId);
 
     startTransition(() => {
-      router.push(`/reports?${params.toString()}`);
+      router.push(`${basePath}?${params.toString()}`);
     });
   }
 
@@ -104,33 +104,13 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
     setCategory("");
     setMaterialId("");
     startTransition(() => {
-      router.push("/reports");
+      router.push(basePath);
     });
   }
-
-  const reportTypeOptions: SearchableSelectOption[] = [
-    { value: "financial", label: "Financial (expenses by project)" },
-    { value: "pnl", label: "Profit & Loss" },
-    { value: "balance-sheet", label: "Balance Sheet" },
-  ];
 
   return (
     <form onSubmit={handleSubmit} className="print:hidden">
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1 w-[240px] shrink-0">
-          <label htmlFor="report-type" className="text-xs font-medium text-slate-600">
-            Report
-          </label>
-          <SearchableSelect
-            name="report"
-            value={reportType}
-            onChange={setReportType}
-            options={reportTypeOptions}
-            placeholder="Report type..."
-            className="w-full min-w-0"
-            inputClassName="text-sm py-1.5 min-w-0"
-          />
-        </div>
         <div className="flex flex-col gap-1 w-[140px] shrink-0">
           <label htmlFor="report-from" className="text-xs font-medium text-slate-600">
             From (month)
@@ -188,34 +168,38 @@ export function ReportFilters({ projects, clients, categories, materials }: Repo
             <p className="mt-0.5 text-xs text-slate-500">Select a client to see their projects</p>
           )}
         </div>
-        <div className="flex flex-col gap-1 w-[220px] shrink-0">
-          <label htmlFor="report-category" className="text-xs font-medium text-slate-600">
-            Category
-          </label>
-          <SearchableSelect
-            name="category"
-            value={category}
-            onChange={setCategory}
-            options={categoryOptions}
-            placeholder="Search categories..."
-            className="w-full min-w-0"
-            inputClassName="text-sm py-1.5 min-w-0"
-          />
-        </div>
-        <div className="flex flex-col gap-1 w-[220px] shrink-0">
-          <label htmlFor="report-material" className="text-xs font-medium text-slate-600">
-            Material
-          </label>
-          <SearchableSelect
-            name="materialId"
-            value={materialId}
-            onChange={setMaterialId}
-            options={materialOptions}
-            placeholder={category ? "Search materials..." : "Select category first"}
-            className="w-full min-w-0"
-            inputClassName="text-sm py-1.5 min-w-0"
-          />
-        </div>
+        {showCategoryMaterial && (
+          <>
+            <div className="flex flex-col gap-1 w-[220px] shrink-0">
+              <label htmlFor="report-category" className="text-xs font-medium text-slate-600">
+                Category
+              </label>
+              <SearchableSelect
+                name="category"
+                value={category}
+                onChange={setCategory}
+                options={categoryOptions}
+                placeholder="Search categories..."
+                className="w-full min-w-0"
+                inputClassName="text-sm py-1.5 min-w-0"
+              />
+            </div>
+            <div className="flex flex-col gap-1 w-[220px] shrink-0">
+              <label htmlFor="report-material" className="text-xs font-medium text-slate-600">
+                Material
+              </label>
+              <SearchableSelect
+                name="materialId"
+                value={materialId}
+                onChange={setMaterialId}
+                options={materialOptions}
+                placeholder={category ? "Search materials..." : "Select category first"}
+                className="w-full min-w-0"
+                inputClassName="text-sm py-1.5 min-w-0"
+              />
+            </div>
+          </>
+        )}
         <div className="flex items-end gap-2 shrink-0">
           <button
             type="submit"

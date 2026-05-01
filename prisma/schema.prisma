@@ -1,0 +1,1112 @@
+// =============================================================================
+<<<<<<< HEAD
+// CONSTRUCTION APP — Single-tenant (one organization per deployment)
+// Global branding: Organization (singleton). Business units: Company.
+=======
+// CONSTRUCTION SAAS — Multi-tenant, shared DB, shared schema, tenantId on all tenant tables
+// Platform models: NO tenantId. Tenant models: MUST have tenantId + indexes.
+// Money: Decimal(15,2). Indexes: composite on (tenantId, ...) for all tenant tables.
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+<<<<<<< HEAD
+// PLATFORM / APP CONFIG
+=======
+// PLATFORM MODELS (SaaS owner — no tenantId)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+// -----------------------------------------------------------------------------
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+<<<<<<< HEAD
+/// One row per deployment — company name, receipt branding, receipt counter.
+model Organization {
+  id                   String   @id @default(cuid())
+  name                 String
+  logoUrl              String?
+  faviconUrl           String?
+  businessInfo         String?
+  lastReceiptNumber    Int      @default(0)
+  hasMultipleCompanies Boolean  @default(false)
+  maxCompanies         Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+=======
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  BANNED
+  EXPIRED
+}
+
+model Tenant {
+  id                   String       @id @default(cuid())
+  name                 String
+  subdomain            String       @unique
+  logoUrl              String? // Company logo (ImageKit URL)
+  faviconUrl           String? // Favicon (ImageKit URL)
+  businessInfo         String? // Company description for receipts
+  lastReceiptNumber    Int          @default(0) // Sequential receipt # (0001, 0002, ...)
+  status               TenantStatus @default(TRIAL)
+  planId               String
+  plan                 Plan         @relation(fields: [planId], references: [id])
+  hasMultipleCompanies Boolean      @default(false)
+  maxCompanies         Int          @default(1)
+  subscriptionExpiryAt DateTime?
+  trialEndsAt          DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  users                  User[]
+  projects               Project[]
+  expenses               Expense[]
+  clients                Client[]
+  invoices               Invoice[]
+  phases                 Phase[]
+  suppliers              Supplier[]
+  materials              MaterialCatalog[]
+  purchaseOrders         PurchaseOrder[]
+  workers                Worker[]
+  payrolls               Payroll[]
+  equipment              Equipment[]
+  stockMovements         StockMovement[]
+  auditLogs              AuditLog[]
+  tenantFeatureOverrides TenantFeatureOverride[]
+  subscriptions          Subscription[]
+  projectInstallments    ProjectInstallment[]
+  projectDeposits        ProjectDeposit[]
+  projectDocuments       ProjectDocument[]
+  expenseDocuments       ExpenseDocument[]
+  assets                 Asset[]
+  tenantPayments         TenantPayment[]
+  companies              Company[]
+
+  @@index([status])
+  @@index([planId])
+  @@index([deletedAt])
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  name         String // Basic | Pro | Enterprise
+  slug         String   @unique
+  maxProjects  Int      @default(10)
+  maxUsers     Int      @default(5)
+  maxStorageMB Int      @default(1024)
+  priceMonthly Decimal  @db.Decimal(15, 2)
+  priceYearly  Decimal? @db.Decimal(15, 2)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenants       Tenant[]
+  planFeatures  PlanFeature[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  tenantId             String
+  planId               String
+  plan                 Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status               String // active | cancelled | past_due
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([tenantId])
+  @@index([planId])
+  @@index([status])
+}
+
+model PlatformInvoice {
+  id              String    @id @default(cuid())
+  tenantId        String
+  amount          Decimal   @db.Decimal(15, 2)
+  status          String // draft | sent | paid | overdue
+  dueDate         DateTime
+  paidAt          DateTime?
+  stripeInvoiceId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model PlatformPayment {
+  id                String   @id @default(cuid())
+  platformInvoiceId String?
+  amount            Decimal  @db.Decimal(15, 2)
+  stripePaymentId   String?
+  paidAt            DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  @@index([platformInvoiceId])
+}
+
+model TenantPayment {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount        Decimal  @db.Decimal(15, 2)
+  paidAt        DateTime @default(now())
+  reference     String? // payment reference / cheque no
+  receiptNumber String? // for receipt display (e.g. TPR-0001)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, paidAt])
+}
+
+model Feature {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. EQUIPMENT_MODULE, LABOR_MODULE
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  planFeatures           PlanFeature[]
+  tenantFeatureOverrides TenantFeatureOverride[]
+}
+
+model PlanFeature {
+  id        String   @id @default(cuid())
+  planId    String
+  featureId String
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature   Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planId, featureId])
+  @@index([planId])
+  @@index([featureId])
+}
+
+model TenantFeatureOverride {
+  id        String   @id @default(cuid())
+  tenantId  String
+  featureId String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  feature   Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, featureId])
+  @@index([tenantId])
+  @@index([featureId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model LoginLog {
+  id        String   @id @default(cuid())
+<<<<<<< HEAD
+  userId    String?
+  adminId   String?
+=======
+  userId    String? // tenant user or null for admin
+  adminId   String?
+  tenantId  String?
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  email     String
+  success   Boolean
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+<<<<<<< HEAD
+=======
+  @@index([tenantId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  @@index([createdAt])
+}
+
+// -----------------------------------------------------------------------------
+<<<<<<< HEAD
+// APP MODELS
+// -----------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN // legacy; unused in standalone app
+=======
+// TENANT MODELS (all include tenantId + composite indexes)
+// -----------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN // platform only
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  COMPANY_ADMIN
+  PROJECT_MANAGER
+  SITE_ENGINEER
+  ACCOUNTANT
+  STORE_MANAGER
+}
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+<<<<<<< HEAD
+  email     String    @unique
+  password  String
+  role      Role
+=======
+  email     String
+  password  String
+  role      Role
+  tenantId  String? // null = platform user (SUPER_ADMIN), set = tenant user
+  tenant    Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+<<<<<<< HEAD
+  @@index([role])
+=======
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([tenantId, role])
+  @@index([email])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  budget      Decimal       @db.Decimal(15, 2)
+  status      ProjectStatus @default(PLANNING)
+  startDate   DateTime
+  endDate     DateTime?
+  clientId    String?
+<<<<<<< HEAD
+=======
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  companyId   String?
+  company     Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  client      Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  deletedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  expenses           Expense[]
+  invoices           Invoice[]
+  phases             Phase[]
+<<<<<<< HEAD
+  purchaseOrderItems PurchaseOrderItem[]
+=======
+  purchaseOrderItems PurchaseOrderItem[] // materials issued to project
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  installments       ProjectInstallment[]
+  deposits           ProjectDeposit[]
+  documents          ProjectDocument[]
+
+<<<<<<< HEAD
+  @@index([companyId])
+  @@index([status])
+  @@index([startDate])
+  @@index([clientId])
+  @@index([name])
+=======
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([tenantId, status])
+  @@index([tenantId, startDate])
+  @@index([tenantId, clientId])
+  @@index([clientId])
+  @@index([tenantId, name])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model ProjectDocument {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
+  name      String
+  fileUrl   String
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+=======
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String // display name
+  fileUrl   String // ImageKit or storage URL
+  mimeType  String // image/* or application/pdf
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, projectId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  @@index([projectId, createdAt])
+}
+
+model ProjectInstallment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
+  label     String
+=======
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  label     String // e.g. "Deposit", "Stage 1", "Final"
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  amount    Decimal  @db.Decimal(15, 2)
+  dueDate   DateTime
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+<<<<<<< HEAD
+  @@index([projectId])
+=======
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, projectId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model ProjectDeposit {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
+  amount        Decimal  @db.Decimal(15, 2)
+  paidAt        DateTime @default(now())
+  reference     String?
+  receiptNumber String?
+  paymentMethod String?
+  accountNo     String?
+=======
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount        Decimal  @db.Decimal(15, 2)
+  paidAt        DateTime @default(now())
+  reference     String? // check no, transaction ref
+  receiptNumber String? // Receipt # for display/print
+  paymentMethod String? // e.g. Cash, Cheque, Bank Transfer
+  accountNo     String? // bank/account number
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+<<<<<<< HEAD
+  @@index([projectId])
+=======
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, projectId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  @@index([projectId, paidAt])
+}
+
+model Phase {
+  id        String   @id @default(cuid())
+  name      String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
+=======
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  costItems CostItem[]
+
+<<<<<<< HEAD
+  @@index([projectId])
+=======
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([tenantId, projectId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+enum CostItemCategory {
+  MATERIAL
+  LABOR
+  EQUIPMENT
+  SUBCONTRACT
+  OTHER
+}
+
+model CostItem {
+  id            String           @id @default(cuid())
+  name          String
+  estimatedCost Decimal          @db.Decimal(15, 2)
+  category      CostItemCategory
+  phaseId       String
+  phase         Phase            @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  sortOrder     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([phaseId])
+}
+
+enum ExpenseCategory {
+  MATERIAL
+  LABOR
+  EQUIPMENT
+  SUBCONTRACT
+  OTHER
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  title       String
+<<<<<<< HEAD
+  amount      Decimal         @db.Decimal(15, 2)
+  quantity    Decimal?        @db.Decimal(15, 4)
+  unitCost    Decimal?        @db.Decimal(15, 2)
+  category    ExpenseCategory
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Restrict)
+=======
+  amount      Decimal         @db.Decimal(15, 2) // Total cost
+  quantity    Decimal?        @db.Decimal(15, 4) // Optional quantity
+  unitCost    Decimal?        @db.Decimal(15, 2) // Optional unit cost
+  category    ExpenseCategory
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  companyId   String?
+  company     Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  approved    Boolean         @default(false)
+  createdById String?
+  expenseDate DateTime        @default(now())
+  deletedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  items     ExpenseItem[]
+  documents ExpenseDocument[]
+
+<<<<<<< HEAD
+  @@index([companyId])
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([category])
+=======
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([tenantId, projectId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, category])
+  @@index([projectId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  @@index([projectId, expenseDate])
+}
+
+model ExpenseDocument {
+  id        String   @id @default(cuid())
+  expenseId String
+  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
+  name      String
+  fileUrl   String
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  @@index([expenseId])
+=======
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  fileUrl   String
+  mimeType  String // image/* or application/pdf
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([expenseId])
+  @@index([tenantId, expenseId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  @@index([expenseId, createdAt])
+}
+
+model ExpenseItem {
+  id        String   @id @default(cuid())
+  expenseId String
+  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+<<<<<<< HEAD
+  materials String
+=======
+  materials String // Description / name of item
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  quantity  Decimal  @db.Decimal(15, 4)
+  unitPrice Decimal  @db.Decimal(15, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expenseId])
+  @@index([expenseId, materials])
+}
+
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+<<<<<<< HEAD
+=======
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  projects Project[]
+
+<<<<<<< HEAD
+  @@index([name])
+  @@index([deletedAt])
+=======
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@index([tenantId, deletedAt])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+model Invoice {
+  id               String        @id @default(cuid())
+<<<<<<< HEAD
+  invoiceNumber    String?
+  projectId        String?
+  project          Project?      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  installmentId    String?
+=======
+  invoiceNumber    String? // e.g. INV-2024-001
+  projectId        String?
+  project          Project?      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  installmentId    String? // link to project installment
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  amount           Decimal       @db.Decimal(15, 2)
+  status           InvoiceStatus @default(DRAFT)
+  issueDate        DateTime      @default(now())
+  dueDate          DateTime
+  paidAt           DateTime?
+  notes            String?
+  terms            String?       @db.Text
+  discount         Decimal?      @db.Decimal(15, 2)
+  taxRate          Decimal?      @db.Decimal(5, 2)
+  shipping         Decimal?      @db.Decimal(15, 2)
+<<<<<<< HEAD
+  companyId        String?
+  company          Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  recipientName    String?
+=======
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyId        String?
+  company          Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  recipientName    String? // Overrides client name if set
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  recipientAddress String?
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+<<<<<<< HEAD
+  items    InvoiceItem[]
+  payments InvoicePayment[]
+
+  @@index([companyId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([projectId])
+}
+
+/// Payment / receipt line tied to an invoice (partial payments supported).
+model InvoicePayment {
+  id            String   @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount        Decimal  @db.Decimal(15, 2)
+  paidAt        DateTime @default(now())
+  receiptNumber String?
+  paymentMethod String?
+  reference     String?
+  accountNo     String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([invoiceId, paidAt])
+}
+=======
+  items InvoiceItem[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@index([projectId])
+}
+
+// ---- Procurement ----
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  phone     String?
+  email     String?
+  address   String?
+<<<<<<< HEAD
+=======
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+
+<<<<<<< HEAD
+  @@index([name])
+=======
+  @@index([tenantId])
+  @@index([tenantId, name])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model MaterialCatalog {
+  id        String   @id @default(cuid())
+  name      String
+  unit      String
+<<<<<<< HEAD
+  category  String?
+=======
+  category  String? // e.g. Cement, Steel, Electrical
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrderItems PurchaseOrderItem[]
+  stockMovements     StockMovement[]
+
+<<<<<<< HEAD
+  @@unique([name])
+  @@index([category])
+=======
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, category])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model PurchaseOrder {
+  id         String   @id @default(cuid())
+  number     String
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+<<<<<<< HEAD
+  status     String   @default("draft")
+=======
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status     String   @default("draft") // draft | sent | received
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  orderDate  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items PurchaseOrderItem[]
+
+<<<<<<< HEAD
+  @@index([supplierId])
+  @@index([createdAt])
+=======
+  @@index([tenantId])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, createdAt])
+  @@index([supplierId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model PurchaseOrderItem {
+  id              String           @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  materialId      String?
+  material        MaterialCatalog? @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  projectId       String?
+  project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+<<<<<<< HEAD
+  name            String
+=======
+  name            String // free text if no material
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  quantity        Decimal          @db.Decimal(15, 4)
+  unitPrice       Decimal          @db.Decimal(15, 2)
+  totalPrice      Decimal          @db.Decimal(15, 2)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([materialId])
+  @@index([projectId])
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model StockMovement {
+  id         String            @id @default(cuid())
+  materialId String
+  material   MaterialCatalog   @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  type       StockMovementType
+  quantity   Decimal           @db.Decimal(15, 4)
+  projectId  String?
+<<<<<<< HEAD
+  reference  String?
+  createdAt  DateTime          @default(now())
+
+  @@index([materialId])
+  @@index([createdAt])
+}
+
+=======
+  reference  String? // PO number or note
+  tenantId   String
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+
+  @@index([tenantId])
+  @@index([materialId])
+  @@index([tenantId, materialId])
+  @@index([createdAt])
+}
+
+// ---- Labor & Payroll ----
+
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+model Worker {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  phone     String?
+<<<<<<< HEAD
+=======
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendances  Attendance[]
+  payrollItems PayrollItem[]
+
+<<<<<<< HEAD
+  @@index([name])
+=======
+  @@index([tenantId])
+  @@index([tenantId, name])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  workerId  String
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  hours     Decimal  @db.Decimal(5, 2)
+<<<<<<< HEAD
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workerId, date])
+  @@index([workerId, date])
+  @@index([date])
+=======
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, workerId, date])
+  @@index([tenantId])
+  @@index([tenantId, workerId, date])
+  @@index([tenantId, date])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model Payroll {
+  id          String   @id @default(cuid())
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+<<<<<<< HEAD
+  status      String   @default("draft")
+=======
+  status      String   @default("draft") // draft | approved | paid
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items PayrollItem[]
+
+<<<<<<< HEAD
+  @@index([periodStart])
+=======
+  @@index([tenantId])
+  @@index([tenantId, periodStart])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model PayrollItem {
+  id        String   @id @default(cuid())
+  payrollId String
+  payroll   Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  workerId  String
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  amount    Decimal  @db.Decimal(15, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([payrollId])
+  @@index([workerId])
+}
+
+<<<<<<< HEAD
+=======
+// ---- Assets ----
+
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+enum AssetCategory {
+  FIXED
+  CURRENT
+}
+
+model Asset {
+  id        String        @id @default(cuid())
+  name      String
+  category  AssetCategory @default(FIXED)
+  cost      Decimal       @db.Decimal(15, 2)
+<<<<<<< HEAD
+=======
+  tenantId  String
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  companyId String?
+  company   Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+<<<<<<< HEAD
+  @@index([companyId])
+  @@index([category])
+}
+
+=======
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([tenantId, category])
+}
+
+// -----------------------------------------------------------------------------
+// NEW MULTI-COMPANY & INVOICING
+// -----------------------------------------------------------------------------
+
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  logoUrl   String?
+  website   String?
+  taxId     String?
+<<<<<<< HEAD
+  notes     String?  @db.Text
+=======
+  notes     String?  @db.Text // Default terms & conditions
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects Project[]
+  expenses Expense[]
+  invoices Invoice[]
+  assets   Asset[]
+<<<<<<< HEAD
+=======
+
+  @@index([tenantId])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal  @db.Decimal(15, 4)
+  unitPrice   Decimal  @db.Decimal(15, 2)
+  amount      Decimal  @db.Decimal(15, 2)
+  taxRate     Decimal? @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
+}
+
+<<<<<<< HEAD
+=======
+// ---- Equipment ----
+
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+model Equipment {
+  id        String   @id @default(cuid())
+  name      String
+  type      String?
+  isRental  Boolean  @default(false)
+<<<<<<< HEAD
+=======
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  maintenanceLogs MaintenanceLog[]
+  equipmentUsages EquipmentUsage[]
+
+<<<<<<< HEAD
+  @@index([name])
+=======
+  @@index([tenantId])
+  @@index([tenantId, name])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+}
+
+model MaintenanceLog {
+  id          String    @id @default(cuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  description String
+  cost        Decimal?  @db.Decimal(15, 2)
+  performedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([equipmentId])
+  @@index([performedAt])
+}
+
+model EquipmentUsage {
+  id          String    @id @default(cuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  projectId   String?
+  startDate   DateTime
+  endDate     DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  @@index([equipmentId])
+  @@index([projectId])
+}
+
+<<<<<<< HEAD
+=======
+// ---- Audit (tenantId nullable for platform actions) ----
+
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  adminId   String?
+<<<<<<< HEAD
+  action    String
+  entity    String
+=======
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  action    String // CREATE | UPDATE | DELETE
+  entity    String // Project | Expense | Invoice | ...
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+<<<<<<< HEAD
+=======
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+>>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

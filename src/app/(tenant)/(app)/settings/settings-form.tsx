@@ -3,11 +3,7 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { useState, useRef } from "react";
 import { upload } from "@imagekit/next";
-<<<<<<< HEAD
 import { updateOrganizationSettingsAction } from "./actions";
-=======
-import { updateTenantSettingsAction } from "./actions";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { useFormAlert } from "@/components/useFormAlert";
 
 function SubmitButton({ disabled }: { disabled?: boolean }) {
@@ -30,25 +26,15 @@ export function SettingsForm({
   initialBusinessInfo,
   initialLogoUrl,
   initialFaviconUrl,
-<<<<<<< HEAD
   organizationId,
-=======
-  tenantId,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }: {
   initialName: string;
   initialBusinessInfo: string | null;
   initialLogoUrl: string | null;
   initialFaviconUrl: string | null;
-<<<<<<< HEAD
   organizationId: string;
 }) {
   const [state, formAction] = useFormState(updateOrganizationSettingsAction, null);
-=======
-  tenantId: string;
-}) {
-  const [state, formAction] = useFormState(updateTenantSettingsAction, null);
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   useFormAlert(state);
 
   const [logoUrl, setLogoUrl] = useState<string | null>(initialLogoUrl);
@@ -83,11 +69,7 @@ export function SettingsForm({
       return;
     }
     const ext = selectedLogoFile.name.split(".").pop() || "png";
-<<<<<<< HEAD
     const fileName = `organization/${organizationId}/logo-${Date.now()}.${ext}`;
-=======
-    const fileName = `tenants/${tenantId}/logo-${Date.now()}.${ext}`;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     setLogoUploading(true);
     try {
       const auth = await getAuth();
@@ -113,11 +95,7 @@ export function SettingsForm({
       return;
     }
     const ext = selectedFaviconFile.name.split(".").pop() || "ico";
-<<<<<<< HEAD
     const fileName = `organization/${organizationId}/favicon-${Date.now()}.${ext}`;
-=======
-    const fileName = `tenants/${tenantId}/favicon-${Date.now()}.${ext}`;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     setFaviconUploading(true);
     try {
       const auth = await getAuth();

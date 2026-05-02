@@ -1,8 +1,4 @@
 import Link from "next/link";
-<<<<<<< HEAD
-=======
-import { getTenantForRequest } from "@/lib/tenant-context";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { prisma } from "@/lib/prisma";
 import { ReportFilters } from "../report-filters";
 import { ReportPrintButton } from "../report-print-button";
@@ -56,10 +52,6 @@ export default async function FinancialReportPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; projectId?: string; clientId?: string; category?: string; materialId?: string; companyId?: string }>;
 }) {
-<<<<<<< HEAD
-=======
-  const tenant = await getTenantForRequest();
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const params = await searchParams;
   const from = params.from ?? null;
   const to = params.to ?? null;
@@ -72,10 +64,6 @@ export default async function FinancialReportPage({
   const { start: rangeStart, end: rangeEnd, label: periodLabel } = parseMonthRange(from, to);
 
   const projectWhere = {
-<<<<<<< HEAD
-=======
-    tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     deletedAt: null,
     ...(clientIdParam ? { clientId: clientIdParam } : {}),
     ...(projectIdParam ? { id: projectIdParam } : {}),
@@ -89,58 +77,38 @@ export default async function FinancialReportPage({
       orderBy: { name: "asc" },
     }),
     prisma.project.findMany({
-<<<<<<< HEAD
       where: { deletedAt: null },
-=======
-      where: { tenantId: tenant.id, deletedAt: null },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       select: { id: true, name: true, clientId: true },
       orderBy: { name: "asc" },
     }),
     prisma.client.findMany({
-<<<<<<< HEAD
       where: { deletedAt: null },
-=======
-      where: { tenantId: tenant.id, deletedAt: null },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
     prisma.materialCatalog.findMany({
-<<<<<<< HEAD
       where: {},
-=======
-      where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       select: { id: true, name: true, category: true },
       orderBy: { name: "asc" },
     }),
     prisma.company.findMany({
-<<<<<<< HEAD
       where: {},
-=======
-      where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
   ]);
 
-  const projectIds = projectsMatchingFilters.map((p) => p.id);
-  const categoriesFromMaterials = Array.from(new Set(materials.map((m) => m.category).filter(Boolean))) as string[];
+  const projectIds = projectsMatchingFilters.map((p: any) => p.id);
+  const categoriesFromMaterials = Array.from(new Set(materials.map((m: any) => m.category).filter(Boolean))) as string[];
   categoriesFromMaterials.sort();
 
-  const materialNameForFilter = materialIdParam ? materials.find((m) => m.id === materialIdParam)?.name ?? null : null;
+  const materialNameForFilter = materialIdParam ? materials.find((m: any) => m.id === materialIdParam)?.name ?? null : null;
 
   const itemConditions = materialNameForFilter
     ? { some: { materials: materialNameForFilter } }
     : undefined;
 
   const expenseWhere = {
-<<<<<<< HEAD
-=======
-    tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     deletedAt: null,
     projectId: { in: projectIds },
     expenseDate: { gte: rangeStart, lte: rangeEnd },
@@ -160,10 +128,6 @@ export default async function FinancialReportPage({
     projectIds.length > 0
       ? prisma.projectDeposit.findMany({
           where: {
-<<<<<<< HEAD
-=======
-            tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
             projectId: { in: projectIds },
             paidAt: { gte: rangeStart, lte: rangeEnd },
           },
@@ -189,8 +153,8 @@ export default async function FinancialReportPage({
     totalExpenses: number;
   };
 
-  const reportProjects: ReportProject[] = projectsMatchingFilters.map((proj) => {
-    const projectExpenses = expensesForProjects.filter((e) => e.projectId === proj.id);
+  const reportProjects: ReportProject[] = projectsMatchingFilters.map((proj: any) => {
+    const projectExpenses = expensesForProjects.filter((e: any) => e.projectId === proj.id);
     const expenseRows: ExpenseRow[] = [];
     for (const exp of projectExpenses) {
       if (exp.items.length > 0) {
@@ -264,11 +228,11 @@ export default async function FinancialReportPage({
 
       <ReportFilters
         basePath="/reports/financial"
-        projects={allProjectsForFilters.map((p) => ({ id: p.id, name: p.name, clientId: p.clientId }))}
-        clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+        projects={allProjectsForFilters.map((p: any) => ({ id: p.id, name: p.name, clientId: p.clientId }))}
+        clients={clients.map((c: any) => ({ id: c.id, name: c.name }))}
         companies={companies}
         categories={categoriesFromMaterials}
-        materials={materials.map((m) => ({ id: m.id, name: m.name, category: m.category }))}
+        materials={materials.map((m: any) => ({ id: m.id, name: m.name, category: m.category }))}
         showCategoryMaterial={true}
       />
 

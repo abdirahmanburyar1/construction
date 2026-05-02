@@ -12,11 +12,7 @@ export default function ContactPage() {
           Company not found
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-<<<<<<< HEAD
           The application is not configured yet, or you need access. Please contact support.
-=======
-          There is no tenant registered for this subdomain. If you need access or want to set up your company on the platform, please contact us.
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
         </p>
         <div className="mt-6 text-left">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">Contact Us</p>

@@ -1,29 +1,14 @@
 import Link from "next/link";
-<<<<<<< HEAD
-=======
-import { getTenantForRequest } from "@/lib/tenant-context";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { prisma } from "@/lib/prisma";
 import { ProjectForm } from "../project-form";
 
 export default async function NewProjectPage() {
-<<<<<<< HEAD
   const [clients, companies] = await Promise.all([
     prisma.client.findMany({
-=======
-  const tenant = await getTenantForRequest();
-  const [clients, companies] = await Promise.all([
-    prisma.client.findMany({
-      where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.company.findMany({
-<<<<<<< HEAD
-=======
-      where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       select: { id: true, name: true, isDefault: true },
     }),
   ]);

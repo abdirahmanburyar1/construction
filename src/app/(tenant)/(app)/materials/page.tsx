@@ -1,8 +1,4 @@
 import Link from "next/link";
-<<<<<<< HEAD
-=======
-import { getTenantForRequest } from "@/lib/tenant-context";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 10;
@@ -12,30 +8,18 @@ export default async function MaterialsPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
-<<<<<<< HEAD
-=======
-  const tenant = await getTenantForRequest();
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const { page = "1" } = await searchParams;
   const current = Math.max(1, parseInt(page, 10) || 1);
   const skip = (current - 1) * PAGE_SIZE;
 
   const [materials, total] = await Promise.all([
     prisma.materialCatalog.findMany({
-<<<<<<< HEAD
       where: {},
-=======
-      where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       take: PAGE_SIZE,
       skip,
       orderBy: { name: "asc" },
     }),
-<<<<<<< HEAD
     prisma.materialCatalog.count({ where: {} }),
-=======
-    prisma.materialCatalog.count({ where: { tenantId: tenant.id } }),
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -62,7 +46,7 @@ export default async function MaterialsPage({
             </tr>
           </thead>
           <tbody>
-            {materials.map((m) => (
+            {materials.map((m: any) => (
               <tr key={m.id}>
                 <td className="font-medium text-slate-800">{m.name}</td>
                 <td className="text-slate-600">{m.category || "—"}</td>

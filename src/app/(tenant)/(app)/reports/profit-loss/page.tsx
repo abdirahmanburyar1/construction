@@ -1,8 +1,4 @@
 import React from "react";
-<<<<<<< HEAD
-=======
-import { getTenantForRequest } from "@/lib/tenant-context";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ReportFilters } from "../report-filters";
@@ -24,10 +20,6 @@ export default async function ProfitLossReportPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; projectId?: string; clientId?: string; companyId?: string }>;
 }) {
-<<<<<<< HEAD
-=======
-  const tenant = await getTenantForRequest();
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const params = await searchParams;
   const toStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const fromParam = toStr(params.from);
@@ -38,40 +30,24 @@ export default async function ProfitLossReportPage({
 
   const [projects, clients, companies] = await Promise.all([
     prisma.project.findMany({
-<<<<<<< HEAD
       where: { deletedAt: null },
-=======
-      where: { tenantId: tenant.id, deletedAt: null },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       orderBy: { name: "asc" },
       select: { id: true, name: true, clientId: true },
     }),
     prisma.client.findMany({
-<<<<<<< HEAD
       where: { deletedAt: null },
-=======
-      where: { tenantId: tenant.id, deletedAt: null },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.company.findMany({
-<<<<<<< HEAD
       where: {},
-=======
-      where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
   ]);
 
   const materials = await prisma.materialCatalog.findMany({
-<<<<<<< HEAD
     where: {},
-=======
-    where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     orderBy: [{ category: "asc" }, { name: "asc" }],
     select: { id: true, name: true, category: true },
   });
@@ -86,10 +62,6 @@ export default async function ProfitLossReportPage({
 
   if (shouldFetchReport && monthRange) {
     const projectWhere = {
-<<<<<<< HEAD
-=======
-      tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       deletedAt: null,
       ...(projectIdParam ? { id: projectIdParam } : {}),
       ...(clientIdParam ? { clientId: clientIdParam } : {}),
@@ -105,10 +77,6 @@ export default async function ProfitLossReportPage({
       projectIds.length > 0
         ? prisma.projectDeposit.findMany({
             where: {
-<<<<<<< HEAD
-=======
-              tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
               projectId: { in: projectIds },
               paidAt: { gte: monthRange.start, lte: monthRange.end },
             },
@@ -118,10 +86,6 @@ export default async function ProfitLossReportPage({
       projectIds.length > 0
         ? prisma.expense.findMany({
             where: {
-<<<<<<< HEAD
-=======
-              tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
               deletedAt: null,
               projectId: { in: projectIds },
               expenseDate: { gte: monthRange.start, lte: monthRange.end },

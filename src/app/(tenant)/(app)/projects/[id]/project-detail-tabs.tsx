@@ -2,45 +2,19 @@
 
 import { useState } from "react";
 import { ProjectInstallmentsSection } from "./project-installments";
-<<<<<<< HEAD
 import { ProjectExpensesSection } from "./project-expenses-section";
 import { ProjectDocumentsSection } from "./project-documents-section";
 
 type TabId = "installments" | "expenses" | "documents";
-=======
-import { ProjectReceiptsSection } from "./project-receipts-section";
-import { ProjectExpensesSection } from "./project-expenses-section";
-import { ProjectDocumentsSection } from "./project-documents-section";
-
-type TabId = "installments" | "receipts" | "expenses" | "documents";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 
 type Installment = {
   id: string;
   label: string;
-<<<<<<< HEAD
   amount: number;
-=======
-  amount: { toString(): string };
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   dueDate: Date;
   sortOrder: number;
 };
 
-<<<<<<< HEAD
-=======
-type Deposit = {
-  id: string;
-  amount: { toString(): string };
-  paidAt: Date;
-  reference: string | null;
-  receiptNumber: string | null;
-  paymentMethod: string | null;
-  accountNo: string | null;
-  notes: string | null;
-};
-
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 type ExpenseItem = {
   id: string;
   materials: string;
@@ -75,17 +49,12 @@ type ProjectDocument = {
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "expenses", label: "Expenses" },
-<<<<<<< HEAD
-=======
-  { id: "receipts", label: "Receipts" },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   { id: "installments", label: "Installments" },
   { id: "documents", label: "Documents" },
 ];
 
 export function ProjectDetailTabs({
   projectId,
-<<<<<<< HEAD
   installments,
   expenses,
   documents,
@@ -98,32 +67,6 @@ export function ProjectDetailTabs({
   documents: ProjectDocument[];
   canAddExpense: boolean;
   organizationId: string;
-=======
-  projectName,
-  clientName,
-  installments,
-  deposits,
-  expenses,
-  documents,
-  canAddExpense,
-  tenantId,
-  tenantName,
-  tenantLogoUrl,
-  tenantBusinessInfo,
-}: {
-  projectId: string;
-  projectName: string;
-  clientName: string | null;
-  installments: Installment[];
-  deposits: Deposit[];
-  expenses: Expense[];
-  documents: ProjectDocument[];
-  canAddExpense: boolean;
-  tenantId: string;
-  tenantName: string;
-  tenantLogoUrl: string | null;
-  tenantBusinessInfo: string | null;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("expenses");
 
@@ -155,41 +98,19 @@ export function ProjectDetailTabs({
         {activeTab === "installments" && (
           <ProjectInstallmentsSection projectId={projectId} installments={installments} embedded />
         )}
-<<<<<<< HEAD
-=======
-        {activeTab === "receipts" && (
-          <ProjectReceiptsSection
-            projectId={projectId}
-            deposits={deposits}
-            projectName={projectName}
-            clientName={clientName}
-            tenantName={tenantName}
-            tenantLogoUrl={tenantLogoUrl}
-            tenantBusinessInfo={tenantBusinessInfo}
-          />
-        )}
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
         {activeTab === "expenses" && (
           <ProjectExpensesSection
             projectId={projectId}
             expenses={expenses}
             canAddExpense={canAddExpense}
-<<<<<<< HEAD
             organizationId={organizationId}
-=======
-            tenantId={tenantId}
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
           />
         )}
         {activeTab === "documents" && (
           <ProjectDocumentsSection
             projectId={projectId}
             documents={documents}
-<<<<<<< HEAD
             organizationId={organizationId}
-=======
-            tenantId={tenantId}
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
           />
         )}
       </div>

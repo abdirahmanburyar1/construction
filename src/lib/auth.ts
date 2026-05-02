@@ -2,11 +2,7 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
-<<<<<<< HEAD
 const APP_SESSION_COOKIE = "app_session";
-=======
-const TENANT_SESSION_COOKIE = "tenant_session";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 const ADMIN_SESSION_COOKIE = "admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
@@ -18,47 +14,26 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-<<<<<<< HEAD
 export async function setAppSession(userId: string): Promise<string> {
   const cookieStore = await cookies();
   const token = `${userId}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
   const isProduction = process.env.NODE_ENV === "production";
   cookieStore.set(APP_SESSION_COOKIE, token, {
-=======
-export async function setTenantSession(userId: string, tenantId: string): Promise<string> {
-  const cookieStore = await cookies();
-  const token = `${userId}:${tenantId}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
-  const isProduction = process.env.NODE_ENV === "production";
-  const platformDomain = process.env.PLATFORM_DOMAIN ?? "";
-  const domain = isProduction && platformDomain.includes(".") ? `.${platformDomain.split(":")[0]}` : undefined;
-  cookieStore.set(TENANT_SESSION_COOKIE, token, {
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     httpOnly: true,
     secure: isProduction,
     sameSite: "lax",
     maxAge: SESSION_MAX_AGE,
     path: "/",
-<<<<<<< HEAD
-=======
-    ...(domain && { domain }),
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   });
   return token;
 }
 
-<<<<<<< HEAD
 export type AppSession = {
   userId: string;
-=======
-export type TenantSession = {
-  userId: string;
-  tenantId: string;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   email: string;
   role: string;
 };
 
-<<<<<<< HEAD
 export async function getUserFromSession(): Promise<AppSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(APP_SESSION_COOKIE)?.value;
@@ -72,28 +47,11 @@ export async function getUserFromSession(): Promise<AppSession | null> {
   if (!user) return null;
   return {
     userId: user.id,
-=======
-export async function getTenantFromSession(): Promise<TenantSession | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(TENANT_SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const [userId, tenantId] = token.split(":");
-  if (!userId || !tenantId) return null;
-  const user = await prisma.user.findFirst({
-    where: { id: userId, tenantId, isActive: true, deletedAt: null },
-    select: { id: true, email: true, role: true, tenantId: true },
-  });
-  if (!user || user.tenantId == null) return null;
-  return {
-    userId: user.id,
-    tenantId: user.tenantId,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     email: user.email,
     role: user.role,
   };
 }
 
-<<<<<<< HEAD
 export async function clearAppSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(APP_SESSION_COOKIE, "", {
@@ -102,21 +60,6 @@ export async function clearAppSession(): Promise<void> {
     sameSite: "lax",
     maxAge: 0,
     path: "/",
-=======
-export async function clearTenantSession(): Promise<void> {
-  const cookieStore = await cookies();
-  const isProduction = process.env.NODE_ENV === "production";
-  const platformDomain = process.env.PLATFORM_DOMAIN ?? "";
-  const domain = isProduction && platformDomain.includes(".") ? `.${platformDomain.split(":")[0]}` : undefined;
-
-  cookieStore.set(TENANT_SESSION_COOKIE, "", {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    maxAge: 0,
-    path: "/",
-    ...(domain && { domain }),
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   });
 }
 

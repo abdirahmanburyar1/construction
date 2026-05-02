@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import Link from "next/link";
 import Swal from "sweetalert2";
-<<<<<<< HEAD
 import { appLogoutAction } from "@/app/(tenant)/actions";
 
 export function AppNavbar({
@@ -13,17 +12,6 @@ export function AppNavbar({
 }: {
   userEmail: string;
   organizationName: string;
-=======
-import { tenantLogoutAction } from "@/app/(tenant)/actions";
-
-export function AppNavbar({
-  userEmail,
-  tenantName,
-  onMenuClick,
-}: {
-  userEmail: string;
-  tenantName: string;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   onMenuClick?: () => void;
 }) {
   const logoutFormRef = useRef<HTMLFormElement>(null);
@@ -70,17 +58,10 @@ export function AppNavbar({
           className="flex items-center gap-3.5 rounded-2xl px-2 py-1.5 transition-all hover:bg-white/40 active:scale-[0.98] group"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 font-black text-white shadow-xl shadow-teal-500/20 group-hover:scale-105 transition-transform">
-<<<<<<< HEAD
             {organizationName.charAt(0).toUpperCase()}
           </div>
           <div className="hidden sm:flex flex-col">
             <span className="font-black tracking-tight text-slate-900 text-lg leading-none">{organizationName}</span>
-=======
-            {tenantName.charAt(0).toUpperCase()}
-          </div>
-          <div className="hidden sm:flex flex-col">
-            <span className="font-black tracking-tight text-slate-900 text-lg leading-none">{tenantName}</span>
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
             <span className="text-[10px] font-bold uppercase tracking-widest text-teal-600 mt-1">Management Hub</span>
           </div>
         </Link>
@@ -96,11 +77,7 @@ export function AppNavbar({
             <span className="text-slate-400 font-medium">@{userEmail.split('@')[1]}</span>
           </p>
         </div>
-<<<<<<< HEAD
         <form ref={logoutFormRef} action={appLogoutAction}>
-=======
-        <form ref={logoutFormRef} action={tenantLogoutAction}>
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
           <button
             type="button"
             onClick={handleLogoutClick}

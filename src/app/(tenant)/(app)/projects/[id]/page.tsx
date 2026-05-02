@@ -1,10 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-<<<<<<< HEAD
 import { getOrganization } from "@/lib/organization-context";
-=======
-import { getTenantForRequest } from "@/lib/tenant-context";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { prisma } from "@/lib/prisma";
 import { updateProjectStatusAction } from "../actions";
 import { ProjectStatusButton } from "@/components/ProjectStatusButton";
@@ -30,23 +26,6 @@ interface ProjectWithIncludes {
     documents: ExpenseDoc[];
   }>;
   installments: Array<{ id: string; label: string; amount: unknown; dueDate: Date; sortOrder: number }>;
-<<<<<<< HEAD
-=======
-  deposits: Array<{
-    id: string;
-    amount: unknown;
-    paidAt: Date;
-    reference: string | null;
-    receiptNumber: string | null;
-    paymentMethod: string | null;
-    accountNo: string | null;
-    notes: string | null;
-  }>;
-}
-interface TenantReceiptInfo {
-  logoUrl: string | null;
-  businessInfo: string | null;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -66,11 +45,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
-<<<<<<< HEAD
   const org = await getOrganization();
-=======
-  const tenant = await getTenantForRequest();
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const { id } = await params;
 
   const expenseDocDelegate = (prisma as { expenseDocument?: { findMany: (args: object) => Promise<ExpenseDoc[]> } })
@@ -78,15 +53,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const projectDocDelegate = (prisma as { projectDocument?: { findMany: (args: object) => Promise<ProjectDoc[]> } })
     .projectDocument;
 
-<<<<<<< HEAD
   const [projectRaw, expenseDocuments, projectDocuments, invoicePaymentsReceived] = await Promise.all([
     prisma.project.findFirst({
       where: { id },
-=======
-  const [projectRaw, tenantReceiptInfoRaw, expenseDocuments, projectDocuments] = await Promise.all([
-    prisma.project.findFirst({
-      where: { id, tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       include: {
         expenses: {
           include: { items: true },
@@ -94,26 +63,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         },
         client: { select: { id: true, name: true } },
         installments: { orderBy: { sortOrder: "asc" } },
-<<<<<<< HEAD
       },
     } as Parameters<typeof prisma.project.findFirst>[0]),
-=======
-        deposits: { orderBy: { paidAt: "desc" } },
-      },
-    } as Parameters<typeof prisma.project.findFirst>[0]),
-    prisma.tenant.findUnique({
-      where: { id: tenant.id },
-      select: { logoUrl: true, businessInfo: true },
-    } as Parameters<typeof prisma.tenant.findUnique>[0]),
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     expenseDocDelegate
       ? expenseDocDelegate
           .findMany({
             where: {
-<<<<<<< HEAD
-=======
-              tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
               expense: { projectId: id },
             },
             orderBy: { createdAt: "desc" },
@@ -123,27 +78,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     projectDocDelegate
       ? projectDocDelegate
           .findMany({
-<<<<<<< HEAD
             where: { projectId: id },
-=======
-            where: { projectId: id, tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
             orderBy: { createdAt: "desc" },
           })
           .catch(() => [] as ProjectDoc[])
       : Promise.resolve([] as ProjectDoc[]),
-<<<<<<< HEAD
     prisma.invoicePayment.aggregate({
       where: { invoice: { projectId: id, deletedAt: null } },
       _sum: { amount: true },
     }),
   ]);
   const project = projectRaw as ProjectWithIncludes | null;
-=======
-  ]);
-  const project = projectRaw as ProjectWithIncludes | null;
-  const tenantReceiptInfo = tenantReceiptInfoRaw as TenantReceiptInfo | null;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   if (!project) notFound();
 
   // Attach documents to each expense (avoids include on Expense for compatibility)
@@ -159,7 +104,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     ...e,
     documents: docsByExpenseId[e.id] ?? [],
   }));
-<<<<<<< HEAD
   const installmentsPlain = project.installments.map((i) => ({
     ...i,
     amount: Number(i.amount),
@@ -172,19 +116,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   };
   const totalExpenses = project.expenses.reduce((s: number, e: (typeof project.expenses)[number]) => s + Number(e.amount), 0);
   const totalReceived = Number(invoicePaymentsReceived._sum.amount ?? 0);
-=======
-  const projectWithExpenseDocs = {
-    ...project,
-    expenses: expensesWithDocuments,
-    documents: projectDocuments,
-  };
-  const tenantName = tenant.name;
-  const tenantLogoUrl = tenantReceiptInfo?.logoUrl ?? null;
-  const tenantBusinessInfo = tenantReceiptInfo?.businessInfo ?? null;
-
-  const totalExpenses = project.expenses.reduce((s: number, e: (typeof project.expenses)[number]) => s + Number(e.amount), 0);
-  const totalReceived = project.deposits.reduce((s: number, d: (typeof project.deposits)[number]) => s + Number(d.amount), 0);
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const budgetNum = Number(project.budget);
   const remaining = Math.max(0, budgetNum - totalExpenses);
   const spendPercent = budgetNum > 0 ? Math.min(100, (totalExpenses / budgetNum) * 100) : 0;
@@ -327,11 +258,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <p className="mt-1 text-xl font-bold text-teal-700 sm:text-2xl">
             {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalReceived)}
           </p>
-<<<<<<< HEAD
           <p className="mt-0.5 text-xs text-slate-500">From invoice payments</p>
-=======
-          <p className="mt-0.5 text-xs text-slate-500">From receipts</p>
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-500">Spent</p>
@@ -360,25 +287,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       {/* Tabs: Installments | Receipts | Expenses */}
       <ProjectDetailTabs
         projectId={projectWithExpenseDocs.id}
-<<<<<<< HEAD
         installments={projectWithExpenseDocs.installments as Parameters<typeof ProjectDetailTabs>[0]["installments"]}
         expenses={projectWithExpenseDocs.expenses as Parameters<typeof ProjectDetailTabs>[0]["expenses"]}
         documents={projectWithExpenseDocs.documents}
         canAddExpense={canAddExpense}
         organizationId={org.id}
-=======
-        projectName={projectWithExpenseDocs.name}
-        clientName={projectWithExpenseDocs.client?.name ?? null}
-        installments={projectWithExpenseDocs.installments as Parameters<typeof ProjectDetailTabs>[0]["installments"]}
-        deposits={projectWithExpenseDocs.deposits as Parameters<typeof ProjectDetailTabs>[0]["deposits"]}
-        expenses={projectWithExpenseDocs.expenses as Parameters<typeof ProjectDetailTabs>[0]["expenses"]}
-        documents={projectWithExpenseDocs.documents}
-        canAddExpense={canAddExpense}
-        tenantId={tenant.id}
-        tenantName={tenantName}
-        tenantLogoUrl={tenantLogoUrl}
-        tenantBusinessInfo={tenantBusinessInfo}
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       />
     </div>
   );

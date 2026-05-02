@@ -39,20 +39,12 @@ export function ProjectExpensesSection({
   projectId,
   expenses,
   canAddExpense,
-<<<<<<< HEAD
   organizationId,
-=======
-  tenantId,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }: {
   projectId: string;
   expenses: Expense[];
   canAddExpense: boolean;
-<<<<<<< HEAD
   organizationId: string;
-=======
-  tenantId: string;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }) {
   const router = useRouter();
   const [previewDoc, setPreviewDoc] = useState<ExpenseDocument | null>(null);
@@ -89,11 +81,7 @@ export function ProjectExpensesSection({
     try {
       const auth = await getAuth();
       const ext = file.name.split(".").pop() || (file.type === "application/pdf" ? "pdf" : "png");
-<<<<<<< HEAD
       const fileName = `organization/${organizationId}/expenses/${expenseId}/doc-${Date.now()}.${ext}`;
-=======
-      const fileName = `tenants/${tenantId}/expenses/${expenseId}/doc-${Date.now()}.${ext}`;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       const result = await upload({ file, fileName, ...auth });
       const url = result.url;
       if (!url) throw new Error("No URL returned from upload");

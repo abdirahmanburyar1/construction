@@ -1,9 +1,5 @@
 import React from "react";
-<<<<<<< HEAD
 import { getOrganization } from "@/lib/organization-context";
-=======
-import { getTenantForRequest } from "@/lib/tenant-context";
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ReportFilters } from "../report-filters";
@@ -31,11 +27,7 @@ export default async function BalanceSheetReportPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; companyId?: string }>;
 }) {
-<<<<<<< HEAD
   const org = await getOrganization();
-=======
-  const tenant = await getTenantForRequest();
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const params = await searchParams;
   const toStr = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const fromParam = toStr(params.from);
@@ -43,30 +35,17 @@ export default async function BalanceSheetReportPage({
   const companyIdParam = toStr(params.companyId);
 
   const [tenantBranding, companies] = await Promise.all([
-<<<<<<< HEAD
     prisma.organization.findUnique({
       where: { id: org.id },
       select: { name: true, logoUrl: true, businessInfo: true },
     }),
     prisma.company.findMany({
       where: {},
-=======
-    prisma.tenant.findUnique({
-      where: { id: tenant.id },
-      select: { name: true, logoUrl: true, businessInfo: true },
-    }),
-    prisma.company.findMany({
-      where: { tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
   ]);
-<<<<<<< HEAD
   const tenantName = tenantBranding?.name ?? org.name;
-=======
-  const tenantName = tenantBranding?.name ?? tenant.name;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const tenantLogoUrl = tenantBranding?.logoUrl ?? null;
   const tenantBusinessInfo = tenantBranding?.businessInfo ?? null;
 
@@ -87,12 +66,7 @@ export default async function BalanceSheetReportPage({
 
   if (shouldFetchReport && monthRange) {
     const projectsMatching = await prisma.project.findMany({
-<<<<<<< HEAD
       where: {
-=======
-      where: { 
-        tenantId: tenant.id, 
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
         deletedAt: null,
         ...(companyIdParam ? { companyId: companyIdParam } : {}),
       },
@@ -105,10 +79,6 @@ export default async function BalanceSheetReportPage({
       projectIds.length > 0
         ? prisma.projectDeposit.aggregate({
             where: {
-<<<<<<< HEAD
-=======
-              tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
               projectId: { in: projectIds },
               paidAt: { lte: monthRange.end },
             },
@@ -118,10 +88,6 @@ export default async function BalanceSheetReportPage({
       projectIds.length > 0
         ? prisma.expense.aggregate({
             where: {
-<<<<<<< HEAD
-=======
-              tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
               deletedAt: null,
               projectId: { in: projectIds },
               expenseDate: { lte: monthRange.end },
@@ -136,12 +102,7 @@ export default async function BalanceSheetReportPage({
     const totalExpenses = Number(expensesAgg._sum.amount ?? 0);
 
     const assets = await prisma.asset.findMany({
-<<<<<<< HEAD
       where: {
-=======
-      where: { 
-        tenantId: tenant.id,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
         ...(companyIdParam ? { companyId: companyIdParam } : {}),
       },
       select: { category: true, cost: true },

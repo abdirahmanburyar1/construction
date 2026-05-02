@@ -23,19 +23,11 @@ type ProjectDocument = {
 export function ProjectDocumentsSection({
   projectId,
   documents,
-<<<<<<< HEAD
   organizationId,
 }: {
   projectId: string;
   documents: ProjectDocument[];
   organizationId: string;
-=======
-  tenantId,
-}: {
-  projectId: string;
-  documents: ProjectDocument[];
-  tenantId: string;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }) {
   const router = useRouter();
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
@@ -70,11 +62,7 @@ export function ProjectDocumentsSection({
     try {
       const auth = await getAuth();
       const ext = file.name.split(".").pop() || (file.type === "application/pdf" ? "pdf" : "png");
-<<<<<<< HEAD
       const fileName = `organization/${organizationId}/projects/${projectId}/doc-${Date.now()}.${ext}`;
-=======
-      const fileName = `tenants/${tenantId}/projects/${projectId}/doc-${Date.now()}.${ext}`;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       const uploadResult = await upload({
         file,
         fileName,

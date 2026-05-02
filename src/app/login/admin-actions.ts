@@ -21,10 +21,7 @@ export async function loginAdmin(formData: FormData) {
   }
 
   await setAdminSession(admin.id);
-  
-<<<<<<< HEAD
+
   redirect("/");
-=======
-  redirect("/tenants");
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }
+

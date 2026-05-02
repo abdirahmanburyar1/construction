@@ -1,28 +1,18 @@
 "use client";
 
-<<<<<<< HEAD
 import { useEffect, useState } from "react";
-=======
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 import { useFormState, useFormStatus } from "react-dom";
 import {
   createProjectInstallmentAction,
   deleteProjectInstallmentAction,
-<<<<<<< HEAD
   updateProjectInstallmentAction,
-=======
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 } from "../actions";
 import { useFormAlert } from "@/components/useFormAlert";
 
 type Installment = {
   id: string;
   label: string;
-<<<<<<< HEAD
   amount: number;
-=======
-  amount: { toString(): string };
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   dueDate: Date;
   sortOrder: number;
 };
@@ -45,69 +35,30 @@ export function ProjectInstallmentsSection({
 
   const content = (
     <>
-        <AddInstallmentForm
+      <AddInstallmentForm
         projectId={projectId}
         formAction={formAction as unknown as (prev: unknown, formData: FormData) => Promise<{ error?: string } | null>}
       />
-        <div className="mt-6 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80">
-                <th className="px-4 py-3 font-semibold text-slate-700">Label</th>
-                <th className="px-4 py-3 font-semibold text-slate-700 text-right">Amount</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Due date</th>
-<<<<<<< HEAD
-                <th className="w-36 px-4 py-3 text-right"></th>
-=======
-                <th className="w-20 px-4 py-3"></th>
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((i) => (
-<<<<<<< HEAD
-                <InstallmentRow key={i.id} projectId={projectId} installment={i} />
-=======
-                <tr key={i.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-4 py-3 font-medium text-slate-800">{i.label}</td>
-                  <td className="px-4 py-3 text-right font-medium text-slate-900">
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(i.amount))}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {new Date(i.dueDate).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <form action={deleteProjectInstallmentAction} className="inline">
-                      <input type="hidden" name="projectId" value={projectId} />
-                      <input type="hidden" name="installmentId" value={i.id} />
-                      <button
-                        type="submit"
-                        className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                        aria-label="Remove installment"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                          <path d="M3 6h18" />
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                          <line x1="10" x2="10" y1="11" y2="17" />
-                          <line x1="14" x2="14" y1="11" y2="17" />
-                        </svg>
-                      </button>
-                    </form>
-                  </td>
-                </tr>
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {installments.length === 0 && (
-          <p className="mt-4 text-center text-sm text-slate-500">No installments yet. Add one above.</p>
-        )}
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 bg-slate-50/80">
+              <th className="px-4 py-3 font-semibold text-slate-700">Label</th>
+              <th className="px-4 py-3 font-semibold text-slate-700 text-right">Amount</th>
+              <th className="px-4 py-3 font-semibold text-slate-700">Due date</th>
+              <th className="w-36 px-4 py-3 text-right"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((i) => (
+              <InstallmentRow key={i.id} projectId={projectId} installment={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {installments.length === 0 && (
+        <p className="mt-4 text-center text-sm text-slate-500">No installments yet. Add one above.</p>
+      )}
     </>
   );
 
@@ -127,7 +78,6 @@ export function ProjectInstallmentsSection({
   );
 }
 
-<<<<<<< HEAD
 function InstallmentRow({
   projectId,
   installment,
@@ -263,8 +213,6 @@ function RowSaveButton() {
   );
 }
 
-=======
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 function AddInstallmentForm({
   projectId,
   formAction,

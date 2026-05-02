@@ -6,20 +6,12 @@ import { TenantNav } from "./tenant-nav";
 
 export function AppShell({
   userEmail,
-<<<<<<< HEAD
   organizationName,
-=======
-  tenantName,
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   enabledModules = [],
   children,
 }: {
   userEmail: string;
-<<<<<<< HEAD
   organizationName: string;
-=======
-  tenantName: string;
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   enabledModules?: string[];
   children: React.ReactNode;
 }) {
@@ -30,11 +22,7 @@ export function AppShell({
       <div className="print:hidden">
         <AppNavbar
           userEmail={userEmail}
-<<<<<<< HEAD
           organizationName={organizationName}
-=======
-          tenantName={tenantName}
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
           onMenuClick={() => setSidebarOpen(true)}
         />
         <TenantNav

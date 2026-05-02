@@ -2,9 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-<<<<<<< HEAD
 import { getOrganization } from "@/lib/organization-context";
-import type { Prisma } from "@prisma/client";
 import { computeInvoiceGrandTotal } from "./invoice-math";
 
 type InvoiceStatus = "DRAFT" | "SENT" | "PARTIAL" | "PAID" | "OVERDUE";
@@ -13,7 +11,7 @@ function formatReceiptNumber(n: number): string {
   return n < 10000 ? n.toString().padStart(4, "0") : n.toString();
 }
 
-async function reconcileInvoicePaymentStatusTx(tx: Prisma.TransactionClient, invoiceId: string) {
+async function reconcileInvoicePaymentStatusTx(tx: any, invoiceId: string) {
   const invoice = await tx.invoice.findFirst({
     where: { id: invoiceId, deletedAt: null },
     include: { items: true, payments: true },
@@ -21,7 +19,7 @@ async function reconcileInvoicePaymentStatusTx(tx: Prisma.TransactionClient, inv
   if (!invoice) return;
 
   const grandTotal = computeInvoiceGrandTotal(invoice);
-  const paidTotal = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
+  const paidTotal = invoice.payments.reduce((s: number, p: { amount: unknown }) => s + Number(p.amount), 0);
 
   const previous = invoice.status as InvoiceStatus;
   let status: InvoiceStatus = previous;
@@ -35,7 +33,7 @@ async function reconcileInvoicePaymentStatusTx(tx: Prisma.TransactionClient, inv
   } else if (grandTotal > 0 && paidTotal + 1e-6 >= grandTotal) {
     status = "PAID";
     const latestMs = invoice.payments.reduce(
-      (max, p) => Math.max(max, new Date(p.paidAt).getTime()),
+      (max: number, p: { paidAt: Date }) => Math.max(max, new Date(p.paidAt).getTime()),
       0
     );
     paidAt = latestMs ? new Date(latestMs) : new Date();
@@ -57,49 +55,21 @@ export async function getLatestInvoiceNumber(): Promise<string> {
     },
     orderBy: { createdAt: "desc" },
     select: { invoiceNumber: true },
-=======
-import { getTenantForRequest } from "@/lib/tenant-context";
-// import { InvoiceStatus } from "@prisma/client";
-type InvoiceStatus = "DRAFT" | "SENT" | "PARTIAL" | "PAID" | "OVERDUE";
-
-export async function getLatestInvoiceNumber(): Promise<string> {
-  const tenant = await getTenantForRequest();
-  
-  const lastInvoice = await prisma.invoice.findFirst({
-    where: { 
-      tenantId: tenant.id,
-      invoiceNumber: { startsWith: "INV-" }
-    },
-    orderBy: { createdAt: "desc" },
-    select: { invoiceNumber: true }
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   });
 
   if (!lastInvoice?.invoiceNumber) {
     return "INV-00001";
   }
 
-<<<<<<< HEAD
-=======
-  // Extract number from INV-XXXXX
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   const matches = lastInvoice.invoiceNumber.match(/INV-(\d+)/);
   if (!matches) {
     return "INV-00001";
   }
 
-<<<<<<< HEAD
   const lastNum = parseInt(matches[1], 10);
   const nextNum = lastNum + 1;
 
   const paddedNum = nextNum.toString().padStart(5, "0");
-=======
-  const lastNum = parseInt(matches[1]);
-  const nextNum = lastNum + 1;
-
-  // Format with at least 5 digits, but allow more
-  const paddedNum = nextNum.toString().padStart(5, '0');
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   return `INV-${paddedNum}`;
 }
 
@@ -107,11 +77,6 @@ export async function createInvoice(
   _prev: unknown,
   formData: FormData
 ): Promise<{ error?: string; success?: boolean } | null> {
-<<<<<<< HEAD
-=======
-  const tenant = await getTenantForRequest();
-  
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   try {
     const projectId = (formData.get("projectId") as string)?.trim();
     const companyId = (formData.get("companyId") as string)?.trim();
@@ -121,10 +86,6 @@ export async function createInvoice(
     const dueDateRaw = formData.get("dueDate") as string;
     const recipientName = (formData.get("recipientName") as string)?.trim();
     const recipientAddress = (formData.get("recipientAddress") as string)?.trim();
-<<<<<<< HEAD
-=======
-    const notes = (formData.get("notes") as string)?.trim();
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     const terms = (formData.get("terms") as string)?.trim();
     const status = (formData.get("status") as InvoiceStatus) || "DRAFT";
 
@@ -140,7 +101,6 @@ export async function createInvoice(
     const issueDate = new Date(issueDateRaw);
     const dueDate = new Date(dueDateRaw);
 
-<<<<<<< HEAD
     const itemsJson = formData.get("items") as string;
     const items = JSON.parse(itemsJson || "[]") as {
       description: string;
@@ -152,18 +112,7 @@ export async function createInvoice(
 
     const totalAmount = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
-    await prisma.$transaction(async (tx) => {
-=======
-    // Handle items (JSON)
-    const itemsJson = formData.get("items") as string;
-    const items = JSON.parse(itemsJson || "[]") as { description: string, quantity: number, unitPrice: number }[];
-
-    if (items.length === 0) return { error: "Add at least one line item" };
-
-    const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-
     await prisma.$transaction(async (tx: any) => {
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       await tx.invoice.create({
         data: {
           invoiceNumber,
@@ -180,43 +129,24 @@ export async function createInvoice(
           dueDate,
           recipientName,
           recipientAddress,
-<<<<<<< HEAD
           items: {
             create: items.map((item) => ({
-=======
-          notes,
-          tenantId: tenant.id,
-          items: {
-            create: items.map(item => ({
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
               description: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               amount: item.quantity * item.unitPrice,
-<<<<<<< HEAD
             })),
           },
         },
-=======
-            }))
-          }
-        }
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
       });
     });
 
     revalidatePath("/invoices");
     return { success: true };
-<<<<<<< HEAD
   } catch (e: unknown) {
     console.error("Failed to create invoice:", e);
     const message = e instanceof Error ? e.message : "Failed to create invoice";
     return { error: message };
-=======
-  } catch (e: any) {
-    console.error("Failed to create invoice:", e);
-    return { error: e.message || "Failed to create invoice" };
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   }
 }
 
@@ -225,11 +155,6 @@ export async function updateInvoice(
   _prev: unknown,
   formData: FormData
 ): Promise<{ error?: string; success?: boolean } | null> {
-<<<<<<< HEAD
-=======
-  const tenant = await getTenantForRequest();
-  
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   try {
     const projectId = (formData.get("projectId") as string)?.trim();
     const companyId = (formData.get("companyId") as string)?.trim();
@@ -239,14 +164,8 @@ export async function updateInvoice(
     const dueDateRaw = formData.get("dueDate") as string;
     const recipientName = (formData.get("recipientName") as string)?.trim();
     const recipientAddress = (formData.get("recipientAddress") as string)?.trim();
-<<<<<<< HEAD
     const terms = (formData.get("terms") as string)?.trim();
     const status = formData.get("status") as InvoiceStatus;
-=======
-    const notes = (formData.get("notes") as string)?.trim();
-    const terms = (formData.get("terms") as string)?.trim();
-    const status = (formData.get("status") as InvoiceStatus);
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 
     const discount = Number(formData.get("discount")) || 0;
     const taxRate = Number(formData.get("taxRate")) || 0;
@@ -261,7 +180,6 @@ export async function updateInvoice(
     const dueDate = new Date(dueDateRaw);
 
     const itemsJson = formData.get("items") as string;
-<<<<<<< HEAD
     const items = JSON.parse(itemsJson || "[]") as {
       id?: string;
       description: string;
@@ -276,29 +194,13 @@ export async function updateInvoice(
       0
     );
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.invoiceItem.deleteMany({
         where: { invoiceId: id },
       });
 
       await tx.invoice.update({
         where: { id },
-=======
-    const items = JSON.parse(itemsJson || "[]") as { id?: string, description: string, quantity: number, unitPrice: number }[];
-
-    if (items.length === 0) return { error: "Add at least one line item" };
-
-    const totalAmount = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
-
-    await prisma.$transaction(async (tx: any) => {
-      // Delete old items and create new ones for simplicity in the update action
-      await tx.invoiceItem.deleteMany({
-        where: { invoiceId: id }
-      });
-
-      await tx.invoice.update({
-        where: { id, tenantId: tenant.id },
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
         data: {
           invoiceNumber,
           projectId: projectId || null,
@@ -314,52 +216,32 @@ export async function updateInvoice(
           dueDate,
           recipientName,
           recipientAddress,
-<<<<<<< HEAD
           items: {
             create: items.map((item) => ({
-=======
-          notes,
-          items: {
-            create: items.map(item => ({
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
               description: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               amount: Number(item.quantity) * Number(item.unitPrice),
-<<<<<<< HEAD
             })),
           },
         },
       });
 
       await reconcileInvoicePaymentStatusTx(tx, id);
-=======
-            }))
-          }
-        }
-      });
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     });
 
     revalidatePath("/invoices");
     revalidatePath(`/invoices/${id}`);
     return { success: true };
-<<<<<<< HEAD
   } catch (e: unknown) {
     console.error("Failed to update invoice:", e);
     const message = e instanceof Error ? e.message : "Failed to update invoice";
     return { error: message };
-=======
-  } catch (e: any) {
-    console.error("Failed to update invoice:", e);
-    return { error: e.message || "Failed to update invoice" };
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
   }
 }
 
 export async function updateInvoiceStatus(id: string, status: InvoiceStatus) {
-<<<<<<< HEAD
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.invoice.update({
       where: { id },
       data: {
@@ -378,32 +260,11 @@ export async function deleteInvoice(id: string) {
   await prisma.invoice.update({
     where: { id },
     data: { deletedAt: new Date() },
-=======
-  const tenant = await getTenantForRequest();
-  
-  await prisma.invoice.update({
-    where: { id, tenantId: tenant.id },
-    data: { 
-      status,
-      paidAt: status === "PAID" ? new Date() : null,
-    }
   });
 
   revalidatePath("/invoices");
 }
 
-export async function deleteInvoice(id: string) {
-  const tenant = await getTenantForRequest();
-
-  await prisma.invoice.update({
-    where: { id, tenantId: tenant.id },
-    data: { deletedAt: new Date() }
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
-  });
-
-  revalidatePath("/invoices");
-}
-<<<<<<< HEAD
 
 export async function createInvoicePaymentAction(
   _prev: unknown,
@@ -423,7 +284,7 @@ export async function createInvoicePaymentAction(
   if (Number.isNaN(amount) || amount <= 0) return { error: "Valid amount required" };
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const invoice = await tx.invoice.findFirst({
         where: { id: invoiceId, deletedAt: null },
         include: { items: true, payments: true },
@@ -434,7 +295,7 @@ export async function createInvoicePaymentAction(
       }
 
       const grandTotal = computeInvoiceGrandTotal(invoice);
-      const paidBefore = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
+      const paidBefore = invoice.payments.reduce((s: number, p: { amount: unknown }) => s + Number(p.amount), 0);
       const remaining = Math.max(0, grandTotal - paidBefore);
       if (amount > remaining + 0.01) {
         throw new Error(`Amount exceeds balance due ($${remaining.toFixed(2)})`);
@@ -478,15 +339,13 @@ export async function deleteInvoicePaymentAction(formData: FormData): Promise<vo
   const paymentId = (formData.get("paymentId") as string)?.trim();
   if (!invoiceId || !paymentId) return;
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.invoicePayment.deleteMany({
-      where: { id: paymentId, invoiceId },
-    });
-    await reconcileInvoicePaymentStatusTx(tx, invoiceId);
+    where: { id: paymentId, invoiceId },
   });
+  await reconcileInvoicePaymentStatusTx(tx, invoiceId);
+});
 
-  revalidatePath("/invoices");
-  revalidatePath(`/invoices/${invoiceId}`);
+revalidatePath("/invoices");
+revalidatePath(`/invoices/${invoiceId}`);
 }
-=======
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b

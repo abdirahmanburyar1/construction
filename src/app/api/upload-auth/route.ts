@@ -1,19 +1,9 @@
 import { getUploadAuthParams } from "@imagekit/next/server";
-<<<<<<< HEAD
 import { getUserFromSession } from "@/lib/auth";
 
 export async function GET() {
   const session = await getUserFromSession();
   if (!session) {
-=======
-import { getTenantFromSession } from "@/lib/auth";
-import { getTenantForRequest } from "@/lib/tenant-context";
-
-export async function GET() {
-  const session = await getTenantFromSession();
-  const tenant = await getTenantForRequest();
-  if (!session || session.tenantId !== tenant.id) {
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

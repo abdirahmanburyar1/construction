@@ -131,7 +131,6 @@ h1, h2, h3, h4, h5, h6, .font-display {
   .card, .glass-card, .table-wrap {
     @apply shadow-none border-slate-200 bg-white backdrop-blur-none;
   }
-<<<<<<< HEAD
 
   /* Single receipt print (payment slip): hide everything except the marked subtree */
   body.print-single-receipt * {
@@ -159,6 +158,4 @@ h1, h2, h3, h4, h5, h6, .font-display {
   .receipt-copy:last-child {
     page-break-after: auto;
   }
-=======
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
 }

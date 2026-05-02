@@ -7,11 +7,7 @@ export default function GlobalError({
 }: {
   error: Error & { digest?: string };
 }) {
-<<<<<<< HEAD
   if (error.name === "OrganizationNotConfiguredError") {
-=======
-  if (error.name === "TenantNotFoundError") {
->>>>>>> 5ab41dbb587e635dbb5869b0a920fb9e9fdf604b
     return <AccessDeniedContact />;
   }
 

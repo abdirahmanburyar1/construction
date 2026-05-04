@@ -152,15 +152,26 @@ h1, h2, h3, h4, h5, h6, .font-display {
     width: 100%;
   }
 
+  /* Two receipt copies stacked on ONE page */
   .receipt-two-copies {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    display: block;
+    width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
   .receipt-copy {
-    page-break-after: always;
+    display: block;
+    width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
-  .receipt-copy:last-child {
-    page-break-after: auto;
+  .receipt-copy:first-child {
+    border-bottom: 2px dashed #94a3b8;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+  .receipt-slip {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }

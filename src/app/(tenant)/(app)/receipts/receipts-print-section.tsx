@@ -32,7 +32,7 @@ function ReceiptSlip({
   const paidDate = format(new Date(receipt.paidAt), "MMMM d, yyyy");
 
   return (
-    <div className="receipt-slip font-sans" style={{ background: "#fff", minHeight: 340, display: "flex", flexDirection: "column" }}>
+    <div className="receipt-slip font-sans" style={{ background: "#fff", display: "flex", flexDirection: "column" }}>
       {/* Top bar */}
       <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 6 }} />
 
@@ -64,53 +64,44 @@ function ReceiptSlip({
       </div>
 
       {/* Body */}
-      <div style={{ flex: 1, padding: "14px 20px", fontSize: 12 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 10px", alignItems: "baseline" }}>
-          <span style={{ color: "#64748b", whiteSpace: "nowrap" }}>Received with thanks from:</span>
-          <span style={{ borderBottom: "1px dotted #94a3b8", fontWeight: 700, color: "#0f172a", paddingBottom: 1 }}>{receipt.recipientName ?? "—"}</span>
-
-          <span style={{ color: "#64748b" }}>For invoice:</span>
-          <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", fontWeight: 600, paddingBottom: 1 }}>
-            {receipt.invoiceNumber ?? "—"}{receipt.notes ? ` — ${receipt.notes}` : ""}
-          </span>
-
-          <span style={{ color: "#64748b" }}>Payment method:</span>
-          <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{receipt.paymentMethod ?? "—"}</span>
-
-          {receipt.accountNo && (
-            <>
-              <span style={{ color: "#64748b" }}>Account No:</span>
-              <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{receipt.accountNo}</span>
-            </>
-          )}
-
-          {receipt.reference && (
-            <>
-              <span style={{ color: "#64748b" }}>Reference:</span>
-              <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{receipt.reference}</span>
-            </>
-          )}
-        </div>
+      <div style={{ flex: 1, padding: "12px 20px 16px", fontSize: 12 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <tbody>
+            {[
+              { label: "Received with thanks from", value: receipt.recipientName ?? "—", bold: true },
+              { label: "For invoice", value: (receipt.invoiceNumber ?? "—") + (receipt.notes ? ` — ${receipt.notes}` : ""), bold: true },
+              { label: "Payment method", value: receipt.paymentMethod ?? "—", bold: false },
+              { label: "Account No", value: receipt.accountNo ?? "—", bold: false },
+              { label: "Reference", value: receipt.reference ?? "—", bold: false },
+            ].map(({ label, value, bold }) => (
+              <tr key={label}>
+                <td style={{ padding: "5px 12px 5px 0", color: "#64748b", whiteSpace: "nowrap", width: 160, verticalAlign: "bottom" }}>{label}:</td>
+                <td style={{ padding: "5px 0", borderBottom: "1px dotted #cbd5e1", fontWeight: bold ? 700 : 400, color: "#0f172a", paddingBottom: 4 }}>{value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
         {/* Amount box */}
-        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: "#64748b", fontSize: 12 }}>Amount received:</span>
-          <span style={{ background: "#0d9488", color: "#fff", fontWeight: 900, fontSize: 15, padding: "6px 18px", borderRadius: 4, letterSpacing: 0.5 }}>
+        <div style={{ marginTop: 16, padding: "10px 14px", border: "2px solid #0d9488", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f0fdfa" }}>
+          <span style={{ color: "#0f766e", fontWeight: 700, fontSize: 12 }}>Amount received:</span>
+          <span style={{ background: "#0d9488", color: "#fff", fontWeight: 900, fontSize: 16, padding: "5px 20px", borderRadius: 4, letterSpacing: 0.5 }}>
             {amountFormatted}
           </span>
         </div>
 
-        {/* Signature */}
-        <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
-          <div style={{ textAlign: "center", minWidth: 160 }}>
-            <div style={{ borderBottom: "1px solid #94a3b8", marginBottom: 4, height: 28 }} />
+        {/* Signature row */}
+        <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div style={{ fontSize: 10, color: "#94a3b8" }}>This receipt is valid proof of payment.</div>
+          <div style={{ textAlign: "center", minWidth: 180 }}>
+            <div style={{ borderBottom: "1px solid #94a3b8", marginBottom: 4, height: 32 }} />
             <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>Authorized Signature</div>
           </div>
         </div>
       </div>
 
       {/* Bottom bar */}
-      <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 4, marginTop: "auto" }} />
+      <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 4 }} />
     </div>
   );
 }

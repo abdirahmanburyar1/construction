@@ -31,6 +31,8 @@ export function ReportFilters({ basePath = "/reports", projects, clients, compan
   const categoryParam = searchParams.get("category") ?? "";
   const materialIdParam = searchParams.get("materialId") ?? "";
 
+  const [fromValue, setFromValue] = useState(fromParam);
+  const [toValue, setToValue] = useState(toParam);
   const [projectId, setProjectId] = useState(projectIdParam);
   const [clientId, setClientId] = useState(clientIdParam);
   const [companyId, setCompanyId] = useState(companyIdParam);
@@ -38,12 +40,14 @@ export function ReportFilters({ basePath = "/reports", projects, clients, compan
   const [materialId, setMaterialId] = useState(materialIdParam);
 
   useEffect(() => {
+    setFromValue(fromParam);
+    setToValue(toParam);
     setProjectId(projectIdParam);
     setClientId(clientIdParam);
     setCompanyId(companyIdParam);
     setCategory(categoryParam);
     setMaterialId(materialIdParam);
-  }, [projectIdParam, clientIdParam, companyIdParam, categoryParam, materialIdParam]);
+  }, [fromParam, toParam, projectIdParam, clientIdParam, companyIdParam, categoryParam, materialIdParam]);
 
   const clientOptions: SearchableSelectOption[] = [
     { value: "", label: "All clients" },
@@ -90,10 +94,8 @@ export function ReportFilters({ basePath = "/reports", projects, clients, compan
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const fromVal = (fd.get("from") as string)?.trim() || null;
-    const toVal = (fd.get("to") as string)?.trim() || null;
+    const fromVal = fromValue.trim() || null;
+    const toVal = toValue.trim() || null;
 
     const params = new URLSearchParams();
     if (fromVal) params.set("from", fromVal);
@@ -112,6 +114,8 @@ export function ReportFilters({ basePath = "/reports", projects, clients, compan
   }
 
   function handleClear() {
+    setFromValue("");
+    setToValue("");
     setProjectId("");
     setClientId("");
     setCompanyId("");
@@ -147,7 +151,8 @@ export function ReportFilters({ basePath = "/reports", projects, clients, compan
             id="report-from"
             name="from"
             type="month"
-            defaultValue={fromParam}
+            value={fromValue}
+            onChange={(e) => setFromValue(e.target.value)}
             className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm w-full"
           />
         </div>
@@ -159,7 +164,8 @@ export function ReportFilters({ basePath = "/reports", projects, clients, compan
             id="report-to"
             name="to"
             type="month"
-            defaultValue={toParam}
+            value={toValue}
+            onChange={(e) => setToValue(e.target.value)}
             className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm w-full"
           />
         </div>

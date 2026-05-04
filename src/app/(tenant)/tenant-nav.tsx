@@ -9,6 +9,8 @@ const navItems = [
   { href: "/companies", label: "Companies", icon: CompaniesIcon },
   { href: "/projects", label: "Projects", icon: ProjectsIcon, feature: "PROJECTS_MODULE" },
   { href: "/invoices", label: "Invoices", icon: InvoicesIcon },
+  { href: "/quotations", label: "Quotations", icon: QuotationsIcon },
+  { href: "/receipts", label: "Receipts", icon: ReceiptsIcon },
   { href: "/materials", label: "Materials", icon: MaterialsIcon, feature: "PROCUREMENT_MODULE" },
   { href: "/assets", label: "Assets", icon: AssetsIcon, feature: "ASSETS_MODULE" },
   { href: "/clients", label: "Clients", icon: ClientsIcon },
@@ -107,6 +109,27 @@ function InvoicesIcon({ className }: { className?: string }) {
       <line x1="16" y1="13" x2="8" y2="13" />
       <line x1="16" y1="17" x2="8" y2="17" />
       <line x1="10" y1="9" x2="8" y2="9" />
+    </svg>
+  );
+}
+
+function QuotationsIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <line x1="9" y1="10" x2="15" y2="10" />
+      <line x1="12" y1="7" x2="12" y2="13" />
+    </svg>
+  );
+}
+
+function ReceiptsIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z" />
+      <line x1="8" y1="9" x2="16" y2="9" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="12" y2="17" />
     </svg>
   );
 }

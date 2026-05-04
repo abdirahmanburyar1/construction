@@ -52,25 +52,19 @@ export async function getLatestInvoiceNumber(): Promise<string> {
   const lastInvoice = await prisma.invoice.findFirst({
     where: {
       invoiceNumber: { startsWith: "INV-" },
+      deletedAt: null,
     },
     orderBy: { createdAt: "desc" },
     select: { invoiceNumber: true },
   });
 
-  if (!lastInvoice?.invoiceNumber) {
-    return "INV-00001";
-  }
+  if (!lastInvoice?.invoiceNumber) return "INV-00001";
 
   const matches = lastInvoice.invoiceNumber.match(/INV-(\d+)/);
-  if (!matches) {
-    return "INV-00001";
-  }
+  if (!matches) return "INV-00001";
 
-  const lastNum = parseInt(matches[1], 10);
-  const nextNum = lastNum + 1;
-
-  const paddedNum = nextNum.toString().padStart(5, "0");
-  return `INV-${paddedNum}`;
+  const nextNum = parseInt(matches[1], 10) + 1;
+  return `INV-${nextNum.toString().padStart(5, "0")}`;
 }
 
 export async function createInvoice(
@@ -86,12 +80,10 @@ export async function createInvoice(
     const dueDateRaw = formData.get("dueDate") as string;
     const recipientName = (formData.get("recipientName") as string)?.trim();
     const recipientAddress = (formData.get("recipientAddress") as string)?.trim();
-    const terms = (formData.get("terms") as string)?.trim();
+    const notes = (formData.get("notes") as string)?.trim() || null;
+    const terms = (formData.get("terms") as string)?.trim() || null;
     const status = (formData.get("status") as InvoiceStatus) || "DRAFT";
-
     const discount = Number(formData.get("discount")) || 0;
-    const taxRate = Number(formData.get("taxRate")) || 0;
-    const shipping = Number(formData.get("shipping")) || 0;
 
     if (!invoiceNumber) return { error: "Invoice number is required" };
     if (!issueDateRaw) return { error: "Issue date is required" };
@@ -121,8 +113,7 @@ export async function createInvoice(
           installmentId: installmentId || undefined,
           amount: totalAmount,
           discount,
-          taxRate,
-          shipping,
+          notes,
           terms,
           status,
           issueDate,
@@ -164,12 +155,10 @@ export async function updateInvoice(
     const dueDateRaw = formData.get("dueDate") as string;
     const recipientName = (formData.get("recipientName") as string)?.trim();
     const recipientAddress = (formData.get("recipientAddress") as string)?.trim();
-    const terms = (formData.get("terms") as string)?.trim();
+    const notes = (formData.get("notes") as string)?.trim() || null;
+    const terms = (formData.get("terms") as string)?.trim() || null;
     const status = formData.get("status") as InvoiceStatus;
-
     const discount = Number(formData.get("discount")) || 0;
-    const taxRate = Number(formData.get("taxRate")) || 0;
-    const shipping = Number(formData.get("shipping")) || 0;
 
     if (!invoiceNumber) return { error: "Invoice number is required" };
     if (!issueDateRaw) return { error: "Issue date is required" };
@@ -195,9 +184,7 @@ export async function updateInvoice(
     );
 
     await prisma.$transaction(async (tx: any) => {
-      await tx.invoiceItem.deleteMany({
-        where: { invoiceId: id },
-      });
+      await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
 
       await tx.invoice.update({
         where: { id },
@@ -208,8 +195,7 @@ export async function updateInvoice(
           installmentId: installmentId || null,
           amount: totalAmount,
           discount,
-          taxRate,
-          shipping,
+          notes,
           terms,
           status,
           issueDate,
@@ -264,7 +250,6 @@ export async function deleteInvoice(id: string) {
 
   revalidatePath("/invoices");
 }
-
 
 export async function createInvoicePaymentAction(
   _prev: unknown,
@@ -327,6 +312,7 @@ export async function createInvoicePaymentAction(
 
     revalidatePath("/invoices");
     revalidatePath(`/invoices/${invoiceId}`);
+    revalidatePath("/receipts");
     return { success: true };
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to record payment";
@@ -341,11 +327,12 @@ export async function deleteInvoicePaymentAction(formData: FormData): Promise<vo
 
   await prisma.$transaction(async (tx: any) => {
     await tx.invoicePayment.deleteMany({
-    where: { id: paymentId, invoiceId },
+      where: { id: paymentId, invoiceId },
+    });
+    await reconcileInvoicePaymentStatusTx(tx, invoiceId);
   });
-  await reconcileInvoicePaymentStatusTx(tx, invoiceId);
-});
 
-revalidatePath("/invoices");
-revalidatePath(`/invoices/${invoiceId}`);
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${invoiceId}`);
+  revalidatePath("/receipts");
 }

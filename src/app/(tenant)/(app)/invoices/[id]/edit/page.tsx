@@ -43,14 +43,13 @@ export default async function EditInvoicePage({
     issueDate: new Date(invoice.issueDate),
     dueDate: new Date(invoice.dueDate),
     discount: Number(invoice.discount),
-    taxRate: Number(invoice.taxRate),
-    shipping: Number(invoice.shipping),
+    notes: invoice.notes ?? null,
     items: invoice.items.map((item: any) => ({
       ...item,
       quantity: Number(item.quantity),
       unitPrice: Number(item.unitPrice),
       amount: Number(item.amount),
-    }))
+    })),
   };
 
   const localizedProjects = projects.map((p: any) => ({

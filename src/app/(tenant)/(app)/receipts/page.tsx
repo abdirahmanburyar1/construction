@@ -1,16 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { getOrganization } from "@/lib/organization-context";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ReceiptsPrintSection } from "./receipts-print-section";
 
 export default async function ReceiptsPage({
   searchParams,
 }: {
-  searchParams: { invoiceId?: string; from?: string; to?: string };
+  searchParams: Promise<{ invoiceId?: string; from?: string; to?: string }>;
 }) {
-  const org = await getOrganization();
-  const { invoiceId, from, to } = searchParams;
+  const { invoiceId, from, to } = await searchParams;
 
   const payments = await prisma.invoicePayment.findMany({
     where: {
@@ -133,7 +130,7 @@ export default async function ReceiptsPage({
                   <td className="px-6 py-4 font-bold text-slate-900">{formatCurrency(Number(p.amount))}</td>
                   <td className="px-6 py-4">
                     <Link
-                      href={`/invoices/${p.invoiceId}`}
+                      href={`/receipts/${p.id}`}
                       className="text-xs font-semibold text-teal-600 hover:underline"
                     >
                       View →
@@ -161,24 +158,6 @@ export default async function ReceiptsPage({
         )}
       </div>
 
-      {/* Hidden print section — individual receipts printed from invoice detail pages */}
-      <ReceiptsPrintSection
-        payments={payments.map((p) => ({
-          id: p.id,
-          receiptNumber: p.receiptNumber,
-          amount: Number(p.amount),
-          paidAt: p.paidAt,
-          paymentMethod: p.paymentMethod,
-          reference: p.reference,
-          accountNo: p.accountNo,
-          notes: p.notes,
-          invoiceNumber: p.invoice.invoiceNumber,
-          recipientName: p.invoice.recipientName,
-        }))}
-        tenantName={org.name}
-        tenantLogoUrl={org.logoUrl ?? null}
-        tenantBusinessInfo={org.businessInfo ?? null}
-      />
     </div>
   );
 }

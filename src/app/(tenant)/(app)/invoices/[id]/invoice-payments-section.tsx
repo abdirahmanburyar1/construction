@@ -254,13 +254,18 @@ function PaymentReceiptCard({
   const handlePrint = () => {
     const receiptEl = printRef.current;
     if (!receiptEl) return;
-    const body = document.body;
-    const originalClass = body.className;
-    body.classList.add("print-single-receipt");
-    receiptEl.classList.add("print-this-receipt");
+
+    // Clone receipt into a direct child of body to bypass any print:hidden ancestor
+    const clone = document.createElement("div");
+    clone.className = "print-this-receipt receipt-two-copies";
+    clone.innerHTML = receiptEl.innerHTML;
+    document.body.appendChild(clone);
+    document.body.classList.add("print-single-receipt");
+
     window.print();
-    body.className = originalClass;
-    receiptEl.classList.remove("print-this-receipt");
+
+    document.body.classList.remove("print-single-receipt");
+    document.body.removeChild(clone);
   };
 
   const amount = Number(payment.amount);
@@ -367,6 +372,15 @@ function AddPaymentModal({
 
 function AddPaymentFields({ onClose, maxAmount }: { onClose: () => void; maxAmount: number }) {
   const { pending } = useFormStatus();
+  const [rawValue, setRawValue] = useState("");
+
+  const entered = parseFloat(rawValue);
+  const isOverMax = !isNaN(entered) && entered > maxAmount + 0.001;
+  const isBelowMin = !isNaN(entered) && entered <= 0;
+  const hasError = isOverMax || isBelowMin;
+
+  const fmtMax = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(maxAmount);
+
   return (
     <>
       {pending && (
@@ -374,11 +388,7 @@ function AddPaymentFields({ onClose, maxAmount }: { onClose: () => void; maxAmou
           <div className="flex flex-col items-center gap-3">
             <svg className="h-10 w-10 animate-spin text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden>
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <span className="text-sm font-medium text-slate-700">Saving…</span>
           </div>
@@ -386,9 +396,18 @@ function AddPaymentFields({ onClose, maxAmount }: { onClose: () => void; maxAmou
       )}
       <fieldset disabled={pending} className="space-y-4">
         <div>
-          <label htmlFor="pay-amount" className="mb-1 block text-sm font-medium text-slate-700">
-            Amount
-          </label>
+          <div className="mb-1 flex items-center justify-between">
+            <label htmlFor="pay-amount" className="text-sm font-medium text-slate-700">
+              Amount
+            </label>
+            <button
+              type="button"
+              onClick={() => setRawValue(maxAmount.toFixed(2))}
+              className="text-xs font-semibold text-teal-600 hover:text-teal-700 hover:underline"
+            >
+              Pay full balance ({fmtMax})
+            </button>
+          </div>
           <input
             id="pay-amount"
             name="amount"
@@ -398,8 +417,30 @@ function AddPaymentFields({ onClose, maxAmount }: { onClose: () => void; maxAmou
             max={maxAmount}
             required
             placeholder="0.00"
-            className="input w-full"
+            value={rawValue}
+            onChange={(e) => setRawValue(e.target.value)}
+            className={`input w-full transition-colors ${hasError ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-200" : ""}`}
           />
+          {isOverMax && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-600">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Exceeds balance due of {fmtMax}
+            </p>
+          )}
+          {isBelowMin && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-600">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Amount must be greater than zero
+            </p>
+          )}
+          {!hasError && !isNaN(entered) && entered > 0 && (
+            <p className="mt-1.5 text-xs text-slate-500">
+              Remaining after this payment:{" "}
+              <span className="font-semibold text-slate-700">
+                {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.max(0, maxAmount - entered))}
+              </span>
+            </p>
+          )}
         </div>
         <div>
           <label htmlFor="pay-paidAt" className="mb-1 block text-sm font-medium text-slate-700">
@@ -444,7 +485,7 @@ function AddPaymentFields({ onClose, maxAmount }: { onClose: () => void; maxAmou
           <input id="pay-notes" name="notes" type="text" placeholder="Optional" className="input w-full" />
         </div>
         <div className="flex gap-2 pt-2">
-          <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={pending}>
+          <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={pending || hasError || !rawValue}>
             {pending ? "Saving…" : "Save payment"}
           </button>
           <button type="button" onClick={onClose} className="btn btn-secondary" disabled={pending}>

@@ -131,13 +131,18 @@ function PrintableReceipt({
   const handlePrint = () => {
     const el = printRef.current;
     if (!el) return;
-    const body = document.body;
-    const originalClass = body.className;
-    body.classList.add("print-single-receipt");
-    el.classList.add("print-this-receipt");
+
+    // Clone receipt into a direct child of body to bypass any print:hidden ancestor
+    const clone = document.createElement("div");
+    clone.className = "print-this-receipt receipt-two-copies";
+    clone.innerHTML = el.innerHTML;
+    document.body.appendChild(clone);
+    document.body.classList.add("print-single-receipt");
+
     window.print();
-    body.className = originalClass;
-    el.classList.remove("print-this-receipt");
+
+    document.body.classList.remove("print-single-receipt");
+    document.body.removeChild(clone);
   };
 
   const amountFormatted = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(receipt.amount);

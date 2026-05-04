@@ -84,7 +84,10 @@ export function InvoicePaymentsSection({
             </span>
           </p>
           {invoiceStatus === "DRAFT" && (
-            <p className="mt-2 text-xs text-amber-700">Send the invoice before recording payments.</p>
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Click &ldquo;Send Invoice&rdquo; above to enable payment recording.
+            </div>
           )}
         </div>
         {canAddPayment && (
@@ -132,7 +135,6 @@ function PaymentSlipBody({
   recipientName,
   tenantName,
   tenantLogoUrl,
-  tenantBusinessInfo,
   copyLabel,
 }: {
   paidDate: string;
@@ -146,81 +148,86 @@ function PaymentSlipBody({
   copyLabel?: string;
 }) {
   return (
-    <div className="receipt-slip bg-[#faf8f5] p-6 min-h-[380px] flex flex-col print:min-h-0 print:p-4">
-      {copyLabel && (
-        <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-600 print:mb-1">
-          {copyLabel}
-        </p>
-      )}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:flex-row">
-        <div className="flex-shrink-0">
+    <div className="receipt-slip font-sans" style={{ background: "#fff", minHeight: 340, display: "flex", flexDirection: "column" }}>
+      {/* Top bar */}
+      <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 6 }} />
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "16px 20px 12px", borderBottom: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {tenantLogoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={tenantLogoUrl}
-              alt="Company logo"
-              className="h-14 w-14 object-contain object-left sm:h-16 sm:w-16 print:h-12 print:w-12"
-            />
+            <img src={tenantLogoUrl} alt="Logo" style={{ height: 44, width: "auto", maxWidth: 100, objectFit: "contain" }} referrerPolicy="no-referrer" />
           ) : (
-            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded border border-slate-300 bg-white sm:h-16 sm:w-16 print:h-12 print:w-12">
-              <span className="text-xs font-medium text-slate-400">Logo</span>
+            <div style={{ width: 44, height: 44, background: "#0d9488", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>{tenantName.slice(0, 1).toUpperCase()}</span>
             </div>
           )}
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 13, color: "#0f172a", letterSpacing: -0.3 }}>{tenantName}</div>
+            {copyLabel && <div style={{ fontSize: 9, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.15em", marginTop: 2 }}>{copyLabel}</div>}
+          </div>
         </div>
-        <div className="flex flex-1 justify-center">
-          <h2 className="inline-block rounded-lg border-2 border-teal-600 px-4 py-2 text-center text-lg font-bold text-teal-700 sm:text-xl print:text-base">
-            MONEY RECEIPT
-          </h2>
-        </div>
-        <div className="flex-shrink-0 text-right">
-          <p className="font-semibold text-teal-700">{tenantName}</p>
-          {tenantBusinessInfo && (
-            <p className="mt-1 max-w-[200px] text-xs leading-snug text-slate-600 sm:max-w-[240px]">
-              {tenantBusinessInfo}
-            </p>
-          )}
-          <p className="mt-2 text-sm text-slate-700">
-            <span className="font-medium">Date:</span> {paidDate}
-          </p>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ display: "inline-block", border: "2px solid #0d9488", borderRadius: 6, padding: "4px 14px", color: "#0d9488", fontWeight: 900, fontSize: 13, letterSpacing: "0.08em" }}>MONEY RECEIPT</div>
+          <div style={{ marginTop: 6, fontSize: 11, color: "#64748b" }}>
+            <span style={{ fontWeight: 700 }}>Receipt No: </span>
+            <span style={{ fontWeight: 900, color: "#0f172a", fontFamily: "monospace" }}>{payment.receiptNumber ?? "—"}</span>
+          </div>
+          <div style={{ fontSize: 11, color: "#64748b" }}>
+            <span style={{ fontWeight: 700 }}>Date: </span>{paidDate}
+          </div>
         </div>
       </div>
-      <div className="mt-6 flex-1 space-y-3 text-sm print:mt-4 print:space-y-2">
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <span className="text-slate-600">Receipt No:</span>
-          <span className="font-semibold text-slate-900">{payment.receiptNumber ?? "—"}</span>
-        </div>
-        <div className="flex flex-wrap gap-x-2">
-          <span className="text-slate-600">Received with thanks from:</span>
-          <span className="border-b border-slate-400 border-dotted font-medium text-slate-900">{recipientName ?? "—"}</span>
-        </div>
-        <div className="flex flex-wrap gap-x-2">
-          <span className="text-slate-600">Payment method:</span>
-          <span className="border-b border-slate-400 border-dotted text-slate-900">{payment.paymentMethod ?? "—"}</span>
-          <span className="ml-2 text-slate-600">Account No:</span>
-          <span className="border-b border-slate-400 border-dotted text-slate-900">{payment.accountNo ?? "—"}</span>
-        </div>
-        <div className="flex flex-wrap gap-x-2">
-          <span className="text-slate-600">Reference:</span>
-          <span className="border-b border-slate-400 border-dotted text-slate-900">{payment.reference ?? "—"}</span>
-        </div>
-        <div className="flex flex-wrap gap-x-2">
-          <span className="text-slate-600">For invoice:</span>
-          <span className="border-b border-slate-400 border-dotted font-medium text-slate-900">
-            {invoiceLabel}
-            {payment.notes ? ` — ${payment.notes}` : ""}
+
+      {/* Body */}
+      <div style={{ flex: 1, padding: "14px 20px", fontSize: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 10px", alignItems: "baseline" }}>
+          <span style={{ color: "#64748b", whiteSpace: "nowrap" }}>Received with thanks from:</span>
+          <span style={{ borderBottom: "1px dotted #94a3b8", fontWeight: 700, color: "#0f172a", paddingBottom: 1 }}>{recipientName ?? "—"}</span>
+
+          <span style={{ color: "#64748b" }}>For invoice:</span>
+          <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", fontWeight: 600, paddingBottom: 1 }}>
+            {invoiceLabel}{payment.notes ? ` — ${payment.notes}` : ""}
           </span>
+
+          <span style={{ color: "#64748b" }}>Payment method:</span>
+          <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{payment.paymentMethod ?? "—"}</span>
+
+          {payment.accountNo && (
+            <>
+              <span style={{ color: "#64748b" }}>Account No:</span>
+              <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{payment.accountNo}</span>
+            </>
+          )}
+
+          {payment.reference && (
+            <>
+              <span style={{ color: "#64748b" }}>Reference:</span>
+              <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{payment.reference}</span>
+            </>
+          )}
         </div>
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-          <span className="text-slate-600">Amount:</span>
-          <span className="inline-block border-2 border-slate-700 bg-white px-3 py-1.5 font-bold text-slate-900">
+
+        {/* Amount box */}
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: "#64748b", fontSize: 12 }}>Amount received:</span>
+          <span style={{ background: "#0d9488", color: "#fff", fontWeight: 900, fontSize: 15, padding: "6px 18px", borderRadius: 4, letterSpacing: 0.5 }}>
             {amountFormatted}
           </span>
         </div>
+
+        {/* Signature */}
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ textAlign: "center", minWidth: 160 }}>
+            <div style={{ borderBottom: "1px solid #94a3b8", marginBottom: 4, height: 28 }} />
+            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>Authorized Signature</div>
+          </div>
+        </div>
       </div>
-      <div
-        className="-mx-6 -mb-6 mt-auto h-4 bg-gradient-to-r from-teal-700 to-teal-500 print:mx-0 print:mb-0 print:mt-4"
-        aria-hidden
-      />
+
+      {/* Bottom bar */}
+      <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 4, marginTop: "auto" }} />
     </div>
   );
 }

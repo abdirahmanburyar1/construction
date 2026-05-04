@@ -242,6 +242,54 @@ export async function updateInvoiceStatus(id: string, status: InvoiceStatus) {
   revalidatePath(`/invoices/${id}`);
 }
 
+export async function quickMarkInvoicePaid(invoiceId: string): Promise<{ error?: string }> {
+  const org = await getOrganization();
+  try {
+    await prisma.$transaction(async (tx: any) => {
+      const invoice = await tx.invoice.findFirst({
+        where: { id: invoiceId, deletedAt: null },
+        include: { items: true, payments: true },
+      });
+      if (!invoice) throw new Error("Invoice not found");
+
+      const grandTotal = computeInvoiceGrandTotal(invoice);
+      const paidBefore = invoice.payments.reduce((s: number, p: { amount: unknown }) => s + Number(p.amount), 0);
+      const remaining = Math.max(0, grandTotal - paidBefore);
+      if (remaining <= 0.001) throw new Error("Invoice already fully paid");
+
+      const t = await tx.organization.update({
+        where: { id: org.id },
+        data: { lastReceiptNumber: { increment: 1 } },
+        select: { lastReceiptNumber: true },
+      });
+      const receiptNumber = formatReceiptNumber(t.lastReceiptNumber);
+
+      await tx.invoicePayment.create({
+        data: {
+          invoiceId,
+          amount: remaining,
+          paidAt: new Date(),
+          receiptNumber,
+          paymentMethod: "Cash",
+          reference: null,
+          accountNo: null,
+          notes: null,
+        },
+      });
+
+      await reconcileInvoicePaymentStatusTx(tx, invoiceId);
+    });
+
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${invoiceId}`);
+    revalidatePath("/receipts");
+    return {};
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to mark as paid";
+    return { error: message };
+  }
+}
+
 export async function deleteInvoice(id: string) {
   await prisma.invoice.update({
     where: { id },

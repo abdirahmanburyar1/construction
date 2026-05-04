@@ -22,7 +22,8 @@ function parseMonthRange(from: string | null, to: string | null): { start: Date;
     start = new Date(parseInt(fromMonth[1], 10), parseInt(fromMonth[2], 10) - 1, 1, 0, 0, 0, 0);
     end = new Date(parseInt(toMonth[1], 10), parseInt(toMonth[2], 10), 0, 23, 59, 59, 999);
   } else {
-    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    // Default: current year Jan → current month
+    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
     end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   }
   const startLabel = start.toLocaleDateString("en-US", { month: "short", year: "numeric" });
@@ -213,14 +214,19 @@ export default async function FinancialReportPage({
 
   const generatedAt = new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 
+  const totalExpensesAll = reportProjects.reduce((s, p) => s + p.totalExpenses, 0);
+  const totalReceivedAll = reportProjects.reduce((s, p) => s + p.received, 0);
+  const totalBudgetAll = reportProjects.reduce((s, p) => s + p.budget, 0);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Financial Report</h1>
+        <div>
+          <Link href="/reports" className="text-sm font-medium text-teal-600 hover:text-teal-700 print:hidden">← Reports</Link>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Financial Overview</h1>
+          <p className="text-sm text-slate-500">Period: {periodLabel}</p>
+        </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <Link href="/reports" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-            ← Reports
-          </Link>
           <ReportPrintButton />
           <ReportExportButtons reportData={reportDataForExport} periodLabel={periodLabel} generatedAt={generatedAt} />
         </div>
@@ -236,59 +242,96 @@ export default async function FinancialReportPage({
         showCategoryMaterial={true}
       />
 
-      <p className="text-sm text-slate-500 print:hidden">
-        Period: {periodLabel} · Generated on {generatedAt}
-      </p>
+      {/* KPI summary cards */}
+      {reportProjects.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:hidden">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Projects</p>
+            <p className="text-2xl font-black text-slate-900">{reportProjects.length}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Budget</p>
+            <p className="text-2xl font-black text-slate-900">{formatCurrency(totalBudgetAll)}</p>
+          </div>
+          <div className="rounded-2xl border border-red-100 bg-red-50 p-5 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1">Total Expenses</p>
+            <p className="text-2xl font-black text-red-700">{formatCurrency(totalExpensesAll)}</p>
+          </div>
+          <div className={`rounded-2xl border p-5 shadow-sm ${totalBudgetAll - totalExpensesAll >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${totalBudgetAll - totalExpensesAll >= 0 ? "text-emerald-600" : "text-red-600"}`}>Variance</p>
+            <p className={`text-2xl font-black ${totalBudgetAll - totalExpensesAll >= 0 ? "text-emerald-700" : "text-red-700"}`}>{formatCurrency(totalBudgetAll - totalExpensesAll)}</p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-8">
         {reportProjects.map((proj) => (
           <section
             key={proj.id}
-            className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden print:shadow-none"
+            className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden print:shadow-none print:rounded-none"
           >
-            <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-4">
-              <h2 className="text-lg font-semibold text-slate-800">{proj.name}</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {proj.clientName ?? "—"} · Budget {formatCurrency(proj.budget)} · Received {formatCurrency(proj.received)} · {proj.status}
-                {proj.startEnd !== "—" ? ` · ${proj.startEnd}` : ""}
-              </p>
+            <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 3 }} />
+            <div className="border-b border-slate-200 bg-slate-50/60 px-6 py-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h2 className="text-base font-black text-slate-900 tracking-tight">{proj.name}</h2>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    {proj.clientName ?? "No client"} · {proj.status}
+                    {proj.startEnd !== "—" ? ` · ${proj.startEnd}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 flex-wrap text-sm">
+                  <div className="text-right">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Budget</p>
+                    <p className="font-black text-slate-900">{formatCurrency(proj.budget)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Expenses</p>
+                    <p className="font-black text-red-600">{formatCurrency(proj.totalExpenses)}</p>
+                  </div>
+                  <div className={`text-right px-3 py-1.5 rounded-lg ${proj.budget - proj.totalExpenses >= 0 ? "bg-emerald-50" : "bg-red-50"}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${proj.budget - proj.totalExpenses >= 0 ? "text-emerald-600" : "text-red-600"}`}>Variance</p>
+                    <p className={`font-black ${proj.budget - proj.totalExpenses >= 0 ? "text-emerald-700" : "text-red-700"}`}>{formatCurrency(proj.budget - proj.totalExpenses)}</p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80">
-                    <th className="border-b border-slate-200 px-5 py-3 font-semibold text-slate-700">Date</th>
-                    <th className="border-b border-slate-200 px-5 py-3 font-semibold text-slate-700">Line item</th>
-                    <th className="border-b border-slate-200 px-5 py-3 font-semibold text-slate-700 text-right">Qty</th>
-                    <th className="border-b border-slate-200 px-5 py-3 font-semibold text-slate-700 text-right">Unit price</th>
-                    <th className="border-b border-slate-200 px-5 py-3 font-semibold text-slate-700 text-right">Amount</th>
+                  <tr style={{ background: "#0d9488" }}>
+                    <th style={{ color: "#fff", padding: "8px 20px", fontWeight: 700, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase" }}>Date</th>
+                    <th style={{ color: "#fff", padding: "8px 20px", fontWeight: 700, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase" }}>Line item</th>
+                    <th style={{ color: "#fff", padding: "8px 20px", fontWeight: 700, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "right" }}>Qty</th>
+                    <th style={{ color: "#fff", padding: "8px 20px", fontWeight: 700, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "right" }}>Unit price</th>
+                    <th style={{ color: "#fff", padding: "8px 20px", fontWeight: 700, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "right" }}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {proj.expenses.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-slate-500">
-                        No expenses in this period
+                      <td colSpan={5} className="px-5 py-8 text-center text-slate-400 italic">
+                        No expenses recorded in this period
                       </td>
                     </tr>
                   ) : (
                     proj.expenses.map((row, idx) => (
-                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
-                        <td className="px-5 py-2.5 text-slate-700 whitespace-nowrap">{row.date}</td>
+                      <tr key={idx} style={{ background: idx % 2 === 0 ? "#fff" : "#f8fafc" }} className="hover:bg-teal-50/30">
+                        <td className="px-5 py-2.5 text-slate-600 whitespace-nowrap text-xs">{row.date}</td>
                         <td className="px-5 py-2.5 text-slate-800">{row.material}</td>
-                        <td className="px-5 py-2.5 text-right text-slate-700 tabular-nums">{row.qty}</td>
-                        <td className="px-5 py-2.5 text-right text-slate-700 tabular-nums">{formatCurrency(row.unitPrice)}</td>
-                        <td className="px-5 py-2.5 text-right font-medium text-slate-900 tabular-nums">{formatCurrency(row.amount)}</td>
+                        <td className="px-5 py-2.5 text-right text-slate-600 tabular-nums">{row.qty}</td>
+                        <td className="px-5 py-2.5 text-right text-slate-600 tabular-nums">{formatCurrency(row.unitPrice)}</td>
+                        <td className="px-5 py-2.5 text-right font-semibold text-slate-900 tabular-nums">{formatCurrency(row.amount)}</td>
                       </tr>
                     ))
                   )}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-slate-50/80 font-semibold">
-                    <td colSpan={4} className="border-t border-slate-200 px-5 py-3 text-slate-800">
-                      Total
+                  <tr className="bg-slate-100">
+                    <td colSpan={4} className="border-t border-slate-200 px-5 py-3 font-black text-slate-800 uppercase text-xs tracking-wide">
+                      Total Expenses
                     </td>
-                    <td className="border-t border-slate-200 px-5 py-3 text-right text-slate-900 tabular-nums">
+                    <td className="border-t border-slate-200 px-5 py-3 text-right font-black text-slate-900 tabular-nums">
                       {formatCurrency(proj.totalExpenses)}
                     </td>
                   </tr>

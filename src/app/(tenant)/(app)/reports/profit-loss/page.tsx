@@ -5,14 +5,24 @@ import { ReportFilters } from "../report-filters";
 import { ReportPrintButton } from "../report-print-button";
 import { ReportProfitLoss } from "../report-profit-loss";
 
-function parseMonthRange(fromParam: string, toParam: string): { start: Date; end: Date } | null {
-  if (!fromParam || !toParam) return null;
-  const [fromY, fromM] = fromParam.split("-").map(Number);
-  const [toY, toM] = toParam.split("-").map(Number);
-  if (!fromY || !fromM || !toY || !toM) return null;
-  const start = new Date(fromY, fromM - 1, 1, 0, 0, 0, 0);
-  const end = new Date(toY, toM, 0, 23, 59, 59, 999);
-  return start <= end ? { start, end } : null;
+function parseMonthRange(fromParam: string, toParam: string): { start: Date; end: Date } {
+  const now = new Date();
+  const [fromY, fromM] = (fromParam || "").split("-").map(Number);
+  const [toY, toM] = (toParam || "").split("-").map(Number);
+
+  const hasFrom = fromY && fromM;
+  const hasTo = toY && toM;
+
+  if (hasFrom && hasTo) {
+    const start = new Date(fromY, fromM - 1, 1, 0, 0, 0, 0);
+    const end = new Date(toY, toM, 0, 23, 59, 59, 999);
+    if (start <= end) return { start, end };
+  }
+
+  // Default: current year Jan → current month
+  const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { start, end };
 }
 
 export default async function ProfitLossReportPage({
@@ -29,114 +39,99 @@ export default async function ProfitLossReportPage({
   const companyIdParam = toStr(params.companyId);
 
   const [projects, clients, companies] = await Promise.all([
-    prisma.project.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, clientId: true },
-    }),
-    prisma.client.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    prisma.company.findMany({
-      where: {},
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
+    prisma.project.findMany({ where: { deletedAt: null }, orderBy: { name: "asc" }, select: { id: true, name: true, clientId: true } }),
+    prisma.client.findMany({ where: { deletedAt: null }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.company.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const materials = await prisma.materialCatalog.findMany({
-    where: {},
     orderBy: [{ category: "asc" }, { name: "asc" }],
     select: { id: true, name: true, category: true },
   });
   const categories = Array.from(new Set(materials.map((m) => m.category).filter(Boolean))) as string[];
   categories.sort();
 
-  const monthRange = parseMonthRange(fromParam, toParam);
-  const shouldFetchReport = monthRange !== null;
+  const { start: rangeStart, end: rangeEnd } = parseMonthRange(fromParam, toParam);
 
-  let pnlData: { income: number; expensesByCategory: { category: string; amount: number }[]; totalExpenses: number; netProfit: number } | null = null;
-  let generatedAt = "";
+  const projectWhere = {
+    deletedAt: null,
+    ...(projectIdParam ? { id: projectIdParam } : {}),
+    ...(clientIdParam ? { clientId: clientIdParam } : {}),
+    ...(companyIdParam ? { companyId: companyIdParam } : {}),
+  };
+  const projectsMatching = await prisma.project.findMany({ where: projectWhere, select: { id: true } });
+  const projectIds = projectsMatching.map((p) => p.id);
 
-  if (shouldFetchReport && monthRange) {
-    const projectWhere = {
-      deletedAt: null,
-      ...(projectIdParam ? { id: projectIdParam } : {}),
-      ...(clientIdParam ? { clientId: clientIdParam } : {}),
-      ...(companyIdParam ? { companyId: companyIdParam } : {}),
-    };
-    const projectsMatching = await prisma.project.findMany({
-      where: projectWhere,
-      select: { id: true },
-    });
-    const projectIds = projectsMatching.map((p) => p.id);
+  const [depositsInPeriod, invoicePaymentsInPeriod, expensesInPeriod] = await Promise.all([
+    projectIds.length > 0
+      ? prisma.projectDeposit.findMany({
+          where: { projectId: { in: projectIds }, paidAt: { gte: rangeStart, lte: rangeEnd } },
+          select: { amount: true },
+        })
+      : [],
+    prisma.invoicePayment.findMany({
+      where: {
+        paidAt: { gte: rangeStart, lte: rangeEnd },
+        invoice: {
+          deletedAt: null,
+          ...(projectIdParam ? { projectId: projectIdParam } : projectIds.length > 0 ? { projectId: { in: projectIds } } : {}),
+        },
+      },
+      select: { amount: true },
+    }),
+    projectIds.length > 0
+      ? prisma.expense.findMany({
+          where: {
+            deletedAt: null,
+            projectId: { in: projectIds },
+            expenseDate: { gte: rangeStart, lte: rangeEnd },
+            project: { deletedAt: null },
+          },
+          select: { amount: true, category: true },
+        })
+      : [],
+  ]);
 
-    const [depositsInPeriod, expensesInPeriod] = await Promise.all([
-      projectIds.length > 0
-        ? prisma.projectDeposit.findMany({
-            where: {
-              projectId: { in: projectIds },
-              paidAt: { gte: monthRange.start, lte: monthRange.end },
-            },
-            select: { amount: true },
-          })
-        : [],
-      projectIds.length > 0
-        ? prisma.expense.findMany({
-            where: {
-              deletedAt: null,
-              projectId: { in: projectIds },
-              expenseDate: { gte: monthRange.start, lte: monthRange.end },
-              project: { deletedAt: null },
-            },
-            select: { amount: true, category: true },
-          })
-        : [],
-    ]);
+  const depositIncome = depositsInPeriod.reduce((s, d) => s + Number(d.amount), 0);
+  const invoiceIncome = invoicePaymentsInPeriod.reduce((s, p) => s + Number(p.amount), 0);
+  // Use invoice payments as primary income; fall back to deposits if no invoices tracked
+  const income = invoiceIncome > 0 ? invoiceIncome : depositIncome;
+  const incomeBreakdown = { invoicePayments: invoiceIncome, projectDeposits: depositIncome };
 
-    const income = depositsInPeriod.reduce((sum, d) => sum + Number(d.amount), 0);
-    const byCategory = new Map<string, number>();
-    for (const e of expensesInPeriod) {
-      const amt = Number(e.amount);
-      byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + amt);
-    }
-    const totalExpenses = expensesInPeriod.reduce((sum, e) => sum + Number(e.amount), 0);
-    const order = ["MATERIAL", "LABOR", "EQUIPMENT", "SUBCONTRACT", "OTHER"];
-    const expensesByCategory = order
-      .filter((c) => byCategory.has(c))
-      .map((category) => ({ category, amount: byCategory.get(category)! }));
-    pnlData = {
-      income,
-      expensesByCategory,
-      totalExpenses,
-      netProfit: income - totalExpenses,
-    };
-    generatedAt = new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" });
+  const byCategory = new Map<string, number>();
+  for (const e of expensesInPeriod) {
+    const amt = Number(e.amount);
+    byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + amt);
   }
+  const totalExpenses = expensesInPeriod.reduce((s, e) => s + Number(e.amount), 0);
+  const order = ["MATERIAL", "LABOR", "EQUIPMENT", "SUBCONTRACT", "OTHER"];
+  const expensesByCategory = order
+    .filter((c) => byCategory.has(c))
+    .map((category) => ({ category, amount: byCategory.get(category)! }));
 
-  const fromLabel = fromParam ? new Date(fromParam + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "";
-  const toLabel = toParam ? new Date(toParam + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "";
-  const periodLabel = `${fromLabel} – ${toLabel}`;
+  const pnlData = { income, incomeBreakdown, expensesByCategory, totalExpenses, netProfit: income - totalExpenses };
+
+  const now = new Date();
+  const defaultFrom = `${now.getFullYear()}-01`;
+  const defaultTo = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const effectiveFrom = fromParam || defaultFrom;
+  const effectiveTo = toParam || defaultTo;
+  const fromLabel = new Date(effectiveFrom + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  const toLabel = new Date(effectiveTo + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  const periodLabel = fromLabel === toLabel ? fromLabel : `${fromLabel} – ${toLabel}`;
+  const generatedAt = new Date().toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" });
 
   return (
     <div className="space-y-8 print:space-y-6" id="report-content">
       <div className="flex flex-col gap-4 print:gap-2">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 print:text-xl">Profit and Loss</h1>
-            {shouldFetchReport ? (
-              <p className="mt-1 text-sm text-slate-500">Period: {periodLabel}</p>
-            ) : (
-              <p className="mt-1 text-sm text-slate-500">Set date range and click Generate report.</p>
-            )}
+            <Link href="/reports" className="text-sm font-medium text-teal-600 hover:text-teal-700 print:hidden">← Reports</Link>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 print:text-xl">Profit & Loss</h1>
+            <p className="mt-1 text-sm text-slate-500">Period: {periodLabel}</p>
           </div>
           <div className="flex items-center gap-2 print:hidden">
-            <Link href="/reports" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-              Back to Reports
-            </Link>
-            {shouldFetchReport && <ReportPrintButton />}
+            <ReportPrintButton />
           </div>
         </div>
         <div className="print:hidden">
@@ -152,16 +147,7 @@ export default async function ProfitLossReportPage({
         </div>
       </div>
 
-      {!shouldFetchReport && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-8 text-center text-slate-600">
-          <p className="font-medium">No report generated yet</p>
-          <p className="mt-1 text-sm">Choose from and to month above and click Generate report.</p>
-        </div>
-      )}
-
-      {shouldFetchReport && pnlData && (
-        <ReportProfitLoss data={pnlData} periodLabel={periodLabel} generatedAt={generatedAt} />
-      )}
+      <ReportProfitLoss data={pnlData} periodLabel={periodLabel} generatedAt={generatedAt} />
     </div>
   );
 }

@@ -20,7 +20,6 @@ function ReceiptSlip({
   receipt,
   tenantName,
   tenantLogoUrl,
-  tenantBusinessInfo,
   copyLabel,
 }: {
   receipt: ReceiptRow;
@@ -33,71 +32,85 @@ function ReceiptSlip({
   const paidDate = format(new Date(receipt.paidAt), "MMMM d, yyyy");
 
   return (
-    <div className="receipt-slip bg-[#faf8f5] p-6 min-h-[380px] flex flex-col">
-      {copyLabel && (
-        <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">{copyLabel}</p>
-      )}
-      <div className="flex items-start justify-between">
-        <div className="flex-shrink-0">
+    <div className="receipt-slip font-sans" style={{ background: "#fff", minHeight: 340, display: "flex", flexDirection: "column" }}>
+      {/* Top bar */}
+      <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 6 }} />
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "16px 20px 12px", borderBottom: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {tenantLogoUrl ? (
-            <img src={tenantLogoUrl} alt="Logo" className="h-14 w-14 object-contain object-left" />
+            <img src={tenantLogoUrl} alt="Logo" style={{ height: 44, width: "auto", maxWidth: 100, objectFit: "contain" }} referrerPolicy="no-referrer" />
           ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded border border-slate-300 bg-white">
-              <span className="text-xs font-medium text-slate-400">Logo</span>
+            <div style={{ width: 44, height: 44, background: "#0d9488", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>{tenantName.slice(0, 1).toUpperCase()}</span>
             </div>
           )}
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 13, color: "#0f172a", letterSpacing: -0.3 }}>{tenantName}</div>
+            {copyLabel && <div style={{ fontSize: 9, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.15em", marginTop: 2 }}>{copyLabel}</div>}
+          </div>
         </div>
-        <div className="flex-1 flex justify-center">
-          <h2 className="inline-block rounded-lg border-2 border-teal-600 px-4 py-2 text-center text-lg font-bold text-teal-700">
-            MONEY RECEIPT
-          </h2>
-        </div>
-        <div className="flex-shrink-0 text-right">
-          <p className="font-semibold text-teal-700">{tenantName}</p>
-          {tenantBusinessInfo && (
-            <p className="mt-1 max-w-[200px] text-xs leading-snug text-slate-600">{tenantBusinessInfo}</p>
-          )}
-          <p className="mt-2 text-sm text-slate-700">
-            <span className="font-medium">Date:</span> {paidDate}
-          </p>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ display: "inline-block", border: "2px solid #0d9488", borderRadius: 6, padding: "4px 14px", color: "#0d9488", fontWeight: 900, fontSize: 13, letterSpacing: "0.08em" }}>MONEY RECEIPT</div>
+          <div style={{ marginTop: 6, fontSize: 11, color: "#64748b" }}>
+            <span style={{ fontWeight: 700 }}>Receipt No: </span>
+            <span style={{ fontWeight: 900, color: "#0f172a", fontFamily: "monospace" }}>{receipt.receiptNumber ?? "—"}</span>
+          </div>
+          <div style={{ fontSize: 11, color: "#64748b" }}>
+            <span style={{ fontWeight: 700 }}>Date: </span>{paidDate}
+          </div>
         </div>
       </div>
-      <div className="mt-6 flex-1 space-y-3 text-sm">
-        <div className="flex gap-x-4">
-          <span className="text-slate-600">Receipt No:</span>
-          <span className="font-semibold text-slate-900">{receipt.receiptNumber ?? "—"}</span>
-        </div>
-        <div className="flex gap-x-2">
-          <span className="text-slate-600">Received with thanks from:</span>
-          <span className="border-b border-slate-400 border-dotted font-medium text-slate-900">
-            {receipt.recipientName ?? "—"}
+
+      {/* Body */}
+      <div style={{ flex: 1, padding: "14px 20px", fontSize: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 10px", alignItems: "baseline" }}>
+          <span style={{ color: "#64748b", whiteSpace: "nowrap" }}>Received with thanks from:</span>
+          <span style={{ borderBottom: "1px dotted #94a3b8", fontWeight: 700, color: "#0f172a", paddingBottom: 1 }}>{receipt.recipientName ?? "—"}</span>
+
+          <span style={{ color: "#64748b" }}>For invoice:</span>
+          <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", fontWeight: 600, paddingBottom: 1 }}>
+            {receipt.invoiceNumber ?? "—"}{receipt.notes ? ` — ${receipt.notes}` : ""}
           </span>
+
+          <span style={{ color: "#64748b" }}>Payment method:</span>
+          <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{receipt.paymentMethod ?? "—"}</span>
+
+          {receipt.accountNo && (
+            <>
+              <span style={{ color: "#64748b" }}>Account No:</span>
+              <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{receipt.accountNo}</span>
+            </>
+          )}
+
+          {receipt.reference && (
+            <>
+              <span style={{ color: "#64748b" }}>Reference:</span>
+              <span style={{ borderBottom: "1px dotted #94a3b8", color: "#0f172a", paddingBottom: 1 }}>{receipt.reference}</span>
+            </>
+          )}
         </div>
-        <div className="flex gap-x-2">
-          <span className="text-slate-600">Payment method:</span>
-          <span className="border-b border-slate-400 border-dotted text-slate-900">{receipt.paymentMethod ?? "—"}</span>
-          <span className="ml-2 text-slate-600">Account No:</span>
-          <span className="border-b border-slate-400 border-dotted text-slate-900">{receipt.accountNo ?? "—"}</span>
-        </div>
-        <div className="flex gap-x-2">
-          <span className="text-slate-600">Reference:</span>
-          <span className="border-b border-slate-400 border-dotted text-slate-900">{receipt.reference ?? "—"}</span>
-        </div>
-        <div className="flex gap-x-2">
-          <span className="text-slate-600">For invoice:</span>
-          <span className="border-b border-slate-400 border-dotted font-medium text-slate-900">
-            {receipt.invoiceNumber ?? "—"}
-            {receipt.notes ? ` — ${receipt.notes}` : ""}
-          </span>
-        </div>
-        <div className="flex items-baseline gap-x-4">
-          <span className="text-slate-600">Amount:</span>
-          <span className="inline-block border-2 border-slate-700 bg-white px-3 py-1.5 font-bold text-slate-900">
+
+        {/* Amount box */}
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: "#64748b", fontSize: 12 }}>Amount received:</span>
+          <span style={{ background: "#0d9488", color: "#fff", fontWeight: 900, fontSize: 15, padding: "6px 18px", borderRadius: 4, letterSpacing: 0.5 }}>
             {amountFormatted}
           </span>
         </div>
+
+        {/* Signature */}
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ textAlign: "center", minWidth: 160 }}>
+            <div style={{ borderBottom: "1px solid #94a3b8", marginBottom: 4, height: 28 }} />
+            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em" }}>Authorized Signature</div>
+          </div>
+        </div>
       </div>
-      <div className="-mx-6 -mb-6 mt-auto h-4 bg-gradient-to-r from-teal-700 to-teal-500" aria-hidden />
+
+      {/* Bottom bar */}
+      <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 4, marginTop: "auto" }} />
     </div>
   );
 }

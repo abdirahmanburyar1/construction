@@ -12,7 +12,8 @@ export type BalanceSheetData = {
 
 function fmt(n: number) {
   return new Intl.NumberFormat("en-US", {
-    style: "decimal",
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);
@@ -33,170 +34,162 @@ export function ReportBalanceSheet({
   tenantLogoUrl: string | null;
   tenantBusinessInfo: string | null;
 }) {
-  const currentAssetsSubtotal =
-    data.totalReceived + data.receivables + data.currentAssetsTotal;
-  const totalAssets =
-    currentAssetsSubtotal + data.fixedAssetsTotal;
+  const currentAssetsSubtotal = data.totalReceived + data.receivables + data.currentAssetsTotal;
+  const totalAssets = currentAssetsSubtotal + data.fixedAssetsTotal;
   const totalLiabilities = 0;
-  const nonCurrentLiabilities = 0;
-  const currentLiabilities = totalLiabilities - nonCurrentLiabilities;
-  const unallocatedEarnings = data.netPosition;
-  const previousUnallocated = 0;
-  const currentYearUnallocated = unallocatedEarnings - previousUnallocated;
   const totalEquity = totalAssets - totalLiabilities;
-  const retainedEarningsTotal = Math.max(0, totalEquity - unallocatedEarnings);
-  const currentYearRetained = 0;
-  const previousYearsRetained = retainedEarningsTotal;
   const liabilitiesPlusEquity = totalLiabilities + totalEquity;
 
-  const sectionHeader = "bg-slate-100 font-bold uppercase tracking-wide text-slate-800";
-  const subSectionHeader = "font-bold text-slate-800";
-  const rowLabel = "py-1.5 pl-4 text-slate-700 border-b border-slate-100";
-  const rowLabelIndent = "py-1.5 pl-8 text-slate-600 border-b border-slate-100";
-  const rowValue = "py-1.5 pr-4 text-right tabular-nums text-slate-900 border-b border-slate-100";
-  const totalRow = "border-b-2 border-slate-300 font-semibold text-slate-900";
+  const row = "py-2 px-4 border-b border-slate-100 text-sm";
+  const rowIndent = "py-1.5 pl-8 pr-4 border-b border-slate-100 text-sm text-slate-600";
+  const rowVal = "py-2 pr-4 text-right tabular-nums text-sm text-slate-900 border-b border-slate-100";
+  const rowValIndent = "py-1.5 pr-4 text-right tabular-nums text-sm text-slate-700 border-b border-slate-100";
+  const sectionHead = "px-4 py-2.5 text-xs font-black uppercase tracking-[0.15em] border-b border-slate-200 bg-slate-50";
+  const subHead = "pl-5 pr-4 py-2 font-bold text-slate-800 border-b border-slate-100 text-sm";
+  const subVal = "pr-4 py-2 text-right font-bold tabular-nums text-sm text-slate-900 border-b border-slate-100";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm print:shadow-none print:rounded-none print:border-slate-300">
-      {/* Header with tenant branding */}
-      <div className="border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white px-6 py-5 print:py-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:flex-row print:gap-2">
-          <div className="flex-shrink-0">
-            {tenantLogoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={tenantLogoUrl}
-                alt="Company logo"
-                className="h-14 w-14 object-contain object-left sm:h-16 sm:w-16 print:h-12 print:w-12"
-              />
-            ) : (
-              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded border border-slate-200 bg-white sm:h-16 sm:w-16 print:h-12 print:w-12">
-                <span className="text-xs font-medium text-slate-400">Logo</span>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-1 flex-col items-center text-center sm:items-center">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 print:text-lg">
-              BALANCE SHEET
-            </h1>
-            <p className="mt-1 text-sm font-medium text-teal-700">As at {asAtLabel}</p>
-            <p className="mt-0.5 text-xs text-slate-500 print:hidden">Generated on {generatedAt}</p>
-          </div>
-          <div className="flex-shrink-0 text-right sm:max-w-[220px]">
-            <p className="font-semibold text-slate-800">{tenantName}</p>
-            {tenantBusinessInfo && (
-              <p className="mt-1 text-xs leading-snug text-slate-600">
-                {tenantBusinessInfo}
-              </p>
-            )}
-          </div>
+    <div className="space-y-6">
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:hidden">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Assets</p>
+          <p className="text-2xl font-black text-slate-900">{fmt(totalAssets)}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Cash Received</p>
+          <p className="text-2xl font-black text-emerald-700">{fmt(data.totalReceived)}</p>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-1">Receivables</p>
+          <p className="text-2xl font-black text-amber-700">{fmt(data.receivables)}</p>
+        </div>
+        <div className={`rounded-2xl border p-5 shadow-sm ${data.netPosition >= 0 ? "border-teal-200 bg-teal-50" : "border-red-200 bg-red-50"}`}>
+          <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${data.netPosition >= 0 ? "text-teal-600" : "text-red-600"}`}>Net Position</p>
+          <p className={`text-2xl font-black ${data.netPosition >= 0 ? "text-teal-700" : "text-red-700"}`}>{fmt(data.netPosition)}</p>
         </div>
       </div>
 
-      <div className="p-6 print:p-5">
-        <table className="w-full max-w-2xl border-collapse text-left text-sm">
-          <tbody>
-            {/* ASSETS */}
-            <tr>
-              <td className={`${sectionHeader} py-2.5 pl-4 pr-4`}>Assets</td>
-              <td className={`${sectionHeader} py-2.5 text-right pr-4 tabular-nums`}>
-                {fmt(totalAssets)}
-              </td>
-            </tr>
-            <tr>
-              <td className={`${subSectionHeader} ${rowLabel} pl-6`}>Current Assets</td>
-              <td className={`${rowValue} font-semibold`}>{fmt(currentAssetsSubtotal)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Bank and Cash Accounts</td>
-              <td className={rowValue}>{fmt(data.totalReceived)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Receivables</td>
-              <td className={rowValue}>{fmt(data.receivables)}</td>
-            </tr>
-            {data.currentAssetsTotal > 0 && (
+      {/* Balance Sheet statement */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm print:shadow-none print:rounded-none print:border-slate-300">
+        <div style={{ background: "linear-gradient(90deg,#0d9488,#0891b2)", height: 4 }} />
+
+        {/* Header with branding */}
+        <div className="border-b border-slate-200 bg-slate-50/60 px-6 py-5 print:py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:flex-row">
+            <div className="flex items-center gap-4">
+              {tenantLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={tenantLogoUrl} alt="Logo" className="h-12 w-auto max-w-[100px] object-contain" referrerPolicy="no-referrer" />
+              ) : (
+                <div style={{ width: 48, height: 48, background: "#0d9488", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>{tenantName.slice(0, 1).toUpperCase()}</span>
+                </div>
+              )}
+              <div>
+                <p className="font-black text-slate-900">{tenantName}</p>
+                {tenantBusinessInfo && <p className="text-xs text-slate-500 mt-0.5 max-w-xs">{tenantBusinessInfo}</p>}
+              </div>
+            </div>
+            <div className="text-right">
+              <h2 className="text-lg font-black uppercase tracking-wide text-slate-900">Balance Sheet</h2>
+              <p className="text-sm font-semibold text-teal-600">As at {asAtLabel}</p>
+              <p className="text-xs text-slate-400 print:hidden">Generated {generatedAt}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-0">
+          <table className="w-full border-collapse text-left">
+            <tbody>
+              {/* ASSETS */}
               <tr>
-                <td className={rowLabelIndent}>Other Current Assets</td>
-                <td className={rowValue}>{fmt(data.currentAssetsTotal)}</td>
+                <td className={`${sectionHead} text-teal-700`}>Assets</td>
+                <td className={`${sectionHead} text-right text-teal-700 pr-4`}>{fmt(totalAssets)}</td>
               </tr>
-            )}
-            <tr>
-              <td className={rowLabelIndent}>Prepayments</td>
-              <td className={rowValue}>{fmt(0)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Plus Fixed Assets</td>
-              <td className={rowValue}>{fmt(data.fixedAssetsTotal)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Plus Non-current Assets</td>
-              <td className={rowValue}>{fmt(0)}</td>
-            </tr>
+              <tr>
+                <td className={subHead}>Current Assets</td>
+                <td className={subVal}>{fmt(currentAssetsSubtotal)}</td>
+              </tr>
+              <tr>
+                <td className={rowIndent}>Bank & Cash (received payments)</td>
+                <td className={rowValIndent}>{fmt(data.totalReceived)}</td>
+              </tr>
+              <tr>
+                <td className={rowIndent}>Accounts receivable (outstanding invoices)</td>
+                <td className={rowValIndent}>{fmt(data.receivables)}</td>
+              </tr>
+              {data.currentAssetsTotal > 0 && (
+                <tr>
+                  <td className={rowIndent}>Other current assets</td>
+                  <td className={rowValIndent}>{fmt(data.currentAssetsTotal)}</td>
+                </tr>
+              )}
+              {data.fixedAssetsTotal > 0 && (
+                <>
+                  <tr>
+                    <td className={subHead}>Fixed Assets</td>
+                    <td className={subVal}>{fmt(data.fixedAssetsTotal)}</td>
+                  </tr>
+                  <tr>
+                    <td className={rowIndent}>Property, plant & equipment</td>
+                    <td className={rowValIndent}>{fmt(data.fixedAssetsTotal)}</td>
+                  </tr>
+                </>
+              )}
 
-            {/* LIABILITIES */}
-            <tr>
-              <td className={`${sectionHeader} pt-5 pb-2.5 pl-4 pr-4`}>Liabilities</td>
-              <td className={`${sectionHeader} pt-5 pb-2.5 text-right pr-4 tabular-nums`}>
-                {fmt(totalLiabilities)}
-              </td>
-            </tr>
-            <tr>
-              <td className={`${subSectionHeader} ${rowLabel} pl-6`}>Current Liabilities</td>
-              <td className={`${rowValue} font-semibold`}>{fmt(currentLiabilities)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Payables</td>
-              <td className={rowValue}>{fmt(0)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Plus Non-current Liabilities</td>
-              <td className={rowValue}>{fmt(nonCurrentLiabilities)}</td>
-            </tr>
+              {/* LIABILITIES */}
+              <tr>
+                <td className={`${sectionHead} text-red-600`} style={{ paddingTop: 16 }}>Liabilities</td>
+                <td className={`${sectionHead} text-right text-red-600 pr-4`} style={{ paddingTop: 16 }}>{fmt(totalLiabilities)}</td>
+              </tr>
+              <tr>
+                <td className={subHead}>Current Liabilities</td>
+                <td className={subVal}>{fmt(0)}</td>
+              </tr>
+              <tr>
+                <td className={rowIndent}>Accounts payable</td>
+                <td className={rowValIndent}>{fmt(0)}</td>
+              </tr>
+              <tr>
+                <td className={rowIndent}>Other current liabilities</td>
+                <td className={rowValIndent}>{fmt(0)}</td>
+              </tr>
 
-            {/* EQUITY */}
-            <tr>
-              <td className={`${sectionHeader} pt-5 pb-2.5 pl-4 pr-4`}>Equity</td>
-              <td className={`${sectionHeader} pt-5 pb-2.5 text-right pr-4 tabular-nums`}>
-                {fmt(totalEquity)}
-              </td>
-            </tr>
-            <tr>
-              <td className={`${subSectionHeader} ${rowLabel} pl-6`}>Unallocated Earnings</td>
-              <td className={`${rowValue} font-semibold`}>{fmt(unallocatedEarnings)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Current Year Unallocated Earnings</td>
-              <td className={rowValue}>{fmt(currentYearUnallocated)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Previous Years Unallocated Earnings</td>
-              <td className={rowValue}>{fmt(previousUnallocated)}</td>
-            </tr>
-            <tr>
-              <td className={`${subSectionHeader} ${rowLabel} pl-6`}>Retained Earnings</td>
-              <td className={`${rowValue} font-semibold`}>{fmt(retainedEarningsTotal)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Current Year Retained Earnings</td>
-              <td className={rowValue}>{fmt(currentYearRetained)}</td>
-            </tr>
-            <tr>
-              <td className={rowLabelIndent}>Previous Years Retained Earnings</td>
-              <td className={rowValue}>{fmt(previousYearsRetained)}</td>
-            </tr>
+              {/* EQUITY */}
+              <tr>
+                <td className={`${sectionHead} text-slate-700`} style={{ paddingTop: 16 }}>Equity</td>
+                <td className={`${sectionHead} text-right text-slate-700 pr-4`} style={{ paddingTop: 16 }}>{fmt(totalEquity)}</td>
+              </tr>
+              <tr>
+                <td className={subHead}>Net Position (budget − expenses)</td>
+                <td className={subVal}>{fmt(data.netPosition)}</td>
+              </tr>
+              <tr>
+                <td className={rowIndent}>Project budgets (contracted value)</td>
+                <td className={rowValIndent}>{fmt(data.totalBudget)}</td>
+              </tr>
+              <tr>
+                <td className={rowIndent}>Less: total expenses incurred</td>
+                <td className={rowValIndent}>({fmt(data.totalExpenses)})</td>
+              </tr>
+              <tr>
+                <td className={subHead}>Retained in assets</td>
+                <td className={subVal}>{fmt(Math.max(0, totalEquity - data.netPosition))}</td>
+              </tr>
 
-            {/* LIABILITIES + EQUITY */}
-            <tr>
-              <td className={`${sectionHeader} pt-5 pb-3 pl-4 pr-4 border-b-2 border-slate-300`}>
-                Liabilities + Equity
-              </td>
-              <td className={`${sectionHeader} pt-5 pb-3 text-right pr-4 tabular-nums border-b-2 border-slate-300`}>
-                {fmt(liabilitiesPlusEquity)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              {/* TOTAL */}
+              <tr>
+                <td className="px-4 py-3 font-black text-slate-900 text-sm border-t-2 border-slate-300 bg-slate-50">
+                  Total Liabilities + Equity
+                </td>
+                <td className="pr-4 py-3 text-right font-black text-slate-900 tabular-nums text-sm border-t-2 border-slate-300 bg-slate-50">
+                  {fmt(liabilitiesPlusEquity)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

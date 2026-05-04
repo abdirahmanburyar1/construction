@@ -18,7 +18,7 @@ export default async function ClientsPage({
       take: PAGE_SIZE,
       skip,
       orderBy: { createdAt: "desc" },
-      include: { projects: { select: { id: true, name: true } } },
+      include: { projects: { select: { id: true } } },
     }),
     prisma.client.count({ where: {} }),
   ]);
@@ -30,7 +30,7 @@ export default async function ClientsPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="page-title">Clients</h1>
-          <p className="page-subtitle">Client contacts and project links</p>
+          <p className="page-subtitle">Client contacts and project counts</p>
         </div>
         <Link href="/clients/new" className="btn btn-primary shrink-0">
           Add client
@@ -55,15 +55,11 @@ export default async function ClientsPage({
                 <td>{c.phone ?? "—"}</td>
                 <td>
                   {c.projects.length > 0 ? (
-                    <span className="flex flex-wrap gap-1">
-                      {c.projects.map((p) => (
-                        <Link key={p.id} href={`/projects/${p.id}`} className="text-teal-600 hover:underline">
-                          {p.name}
-                        </Link>
-                      ))}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
+                      {c.projects.length} project{c.projects.length !== 1 ? "s" : ""}
                     </span>
                   ) : (
-                    "—"
+                    <span className="text-slate-400">—</span>
                   )}
                 </td>
               </tr>
